@@ -1,0 +1,147 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║             PROFINET 六轴机械臂控制系统 — 完整架构（修正版）                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+                          外部网络                     OK3576 开发板内部
+  ┌──────────┐          ┌──────────────────────────────────────────────────────────┐
+  │          │          │              ┌─────────────────────────────────┐          │
+  │   PLC    │ 网线直连  │    pn_dev    │     robot_software_control      │          │
+  │          │◄────────►│  (C 进程)    │        (C++ ROS2 进程)           │          │
+  │ (TIA     │PROFINET  │              │                                 │          │
+  │  Portal) │ RT 1ms   │ ┌──────────┐ │  ┌───────────────────────────┐  │          │
+  │          │          │ │ p-net    │ │  │  PLCCommunicator          │  │          │
+  │ %QB0~79  │─────────►│ │ 协议栈    │ │  │  :31000 监听               │  │          │
+  │  (Output)│ 80字节    │ │          │ │  │                            │  │          │
+  │          │          │ │ pf_cpm ──┼─┼──► recv() -> handlePLCData() │  │          │
+  │          │          │ │ (收帧)    │ │  │   BOOL[0]->上电(上升沿)   │  │          │
+  │          │          │ │          │ │  │   BOOL[4]->急停(上升沿)   │  │          │
+  │          │          │ │ pf_ppm ──┼─┼──┤   REAL[0~3]->视觉偏移     │  │          │
+  │          │          │ │ (发帧)    │ │  │   BOOL[0~255]->程序变量   │  │          │
+  │          │          │ └──────────┘ │  │   INT[0~7]  ->程序变量     │  │  EtherCAT│ ┌──────────┐
+  │          │          │      ▲       │  │   REAL[0~7] ->程序变量     │  │          │ │          │
+  │          │          │      │       │  └───────────┬───────────────┘  │◄────────►│ │六轴机械臂 │
+  │ %IB0~79  │◄────────│      │       │              │                  │ CIA402   │ │          │
+  │  (Input) │ 80字节    │ ┌──────┐   │  ┌───────────▼───────────┐      │          │ │ J1~J6    │
+  │          │          │ │TCP   │   │  │  updateRealtimeData    │      │          │ │ 伺服     │
+  │          │          │ │bridge│   │  │  FromTimer() 100Hz      │      │          │ │          │
+  │          │          │ │      │◄──┼──┤                        │      │          │ │ +工具IO  │
+  │          │          │ │client│──┼─►│  buildRobotToPLCFrame() │      │          │ │ +DI/DO   │
+  │          │          │ │      │   │  -> updateRobotStatus()   │      │          │ │ +基板    │
+  │          │          │ │127.0.│   │                          │      │          │ └──────────┘
+  │          │          │ │0.1:  │   │  jointStateCallback()    │      │          │
+  │          │          │ │31000 │   │  -> notifyPlcActionDone() │      │          │
+  │          │          │ └──────┘   │  -> BOOL[16] 动作完成     │      │          │
+  │          │          │            └───────────────────────────┘      │          │
+  │          │          └─────────────────────────────────────────────────┘          │
+  └──────────┘                                                                       │
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                  数据协议 (PLCFrame 80字节) — 对照实际代码                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  Offset  0                             32                       48                     80
+         +------------------------------+------------------------+----------------------+
+         |  bool_data[32]  (32字节)      |  int_data[8] (16字节)   |  real_data[8] (32字节)|
+         |  BOOL[0] ~ BOOL[255]          |  INT[0] ~ INT[7]        |  REAL[0] ~ REAL[7]    |
+         +------------------------------+------------------------+----------------------+
+
+  ┌─ PLC -> Robot (handlePLCData 处理) ──────────────────────────────────────────┐
+  │                                                                               │
+  │  BOOL[0]   上升沿 -> gpio_safety_start()    上电                              │
+  │  BOOL[4]   上升沿 -> triggerStop(STOP1)     软急停                             │
+  │  REAL[0]   -> plc_vision_offset_[0]        视觉偏移 X                         │
+  │  REAL[1]   -> plc_vision_offset_[1]        视觉偏移 Y                         │
+  │  REAL[2]   -> plc_vision_offset_[2]        视觉偏移 Z                         │
+  │  REAL[3]   -> plc_vision_offset_[3]        视觉偏移姿态                        │
+  │  BOOL[0~255] 全部 -> program_data_bool_[0~255]  供 .proc 程序引用              │
+  │  INT[0~7]    全部 -> program_data_int_[0~7]     供 .proc 程序引用              │
+  │  REAL[0~7]   全部 -> program_data_real_[0~7]    供 .proc 程序引用              │
+  └───────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ Robot -> PLC (buildRobotToPLCFrame 构建) ───────────────────────────────────┐
+  │                                                                               │
+  │  BOOL[0]   gpio_safety_get_state()==RUNNING   电源状态                         │
+  │  BOOL[1]   EnableStatus==0                    告警                             │
+  │  BOOL[2]   EnableStatus!=0                    已使能                           │
+  │  BOOL[6]   trajectory_cache_.is_active        Robot_Busy (轨迹执行中)          │
+  │  BOOL[7]   sum|qd_actual| > 0.005             Robot_Moving (关节运动中)         │
+  │  BOOL[15]  sum|qd_actual| > 0.005             Action Busy (同Moving)           │
+  │  BOOL[16]  now < done_expire                  Action Done (保持300ms)          │
+  │  BOOL[17]  tool_realtime_.ai0 > 128           左夹爪闭合                        │
+  │  BOOL[18]  tool_realtime_.ai1 > 128           右夹爪闭合                        │
+  │  BOOL[32]  tool_realtime_.di & 0x01           左夹爪有料                        │
+  │  BOOL[33]  tool_realtime_.di & 0x02           右夹爪有料                        │
+  │  BOOL[34]  board_di bit0                      板载DI传感器0                     │
+  │  BOOL[35]  board_di bit1                      板载DI传感器1                     │
+  │  BOOL[36]  board_di bit2                      板载DI传感器2                     │
+  │  BOOL[37]  board_di bit3                      板载DI传感器3                     │
+  │  INT[0~7]   全零 (未定义)                                                      │
+  │  REAL[0~7]  全零 (未定义)                                                      │
+  └───────────────────────────────────────────────────────────────────────────────┘
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           启动与连接时序                                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  运动控制器                           pn_dev                          PLC
+  ----------                          -----                          ---
+  t=0s  ROS2 launch
+        +- robot_bringup 启动
+        +- PLCCommunicator :31000 开始监听
+
+  t=5s  +- 检查 EtherCAT 从站 (最长等 90s)
+
+                                      t=6s  pn_dev 启动
+                                            +- app_plc_bridge_start()
+                                            |   connect(127.0.0.1:31000) 成功
+                                            |   plc_sock_fd = OK
+                                            +- pnet_init() 等待 PLC
+
+  t=30s +- arm_controller 激活                                      t=35s
+        |                                            PLC DCP 发现 -> pn_dev 应答
+        |                                            PLC Connect -> PrmEnd -> 周期数据
+        |   100Hz 定时器 -> buildRobotToPLCFrame()
+        |   -> updateRobotStatus()  状态帧有数据
+        |                                           每 1ms: send(PLCFrame) -> recv(状态)
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║              app_data.c 数据流 (PROFINET <-> TCP)                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  PROFINET 1ms tick
+       |
+       v
+  app_cyclic_data_callback()                    [sampleapp_common.c]
+       |
+       +--> pnet_output_get_data_and_iops()     PLC数据 -> outdata_buf[80]
+       |         |
+       |         v
+       |    app_data_set_output_data(submod_id=0x151, data, 80)
+       |         |
+       |         +-> send(plc_sock_fd, data, 80)  ------>  127.0.0.1:31000
+       |         |                                              |
+       |         |                                     PLCCommunicator:
+       |         |                                       recv(80) -> handlePLCData()
+       |         |                                       send(80) <- robot_status_frame_
+       |         |                                              |
+       |         +-> recv(plc_sock_fd, &rx, 80)  <------------+
+       |              |
+       |              +-> latest_robot_status = rx  (缓存)
+       |
+       +--> app_data_get_input_data(submod_id=0x150)
+       |         |
+       |         +-> *size = 80
+       |         +-> *iops = (plc_sock_fd>0)? GOOD : BAD
+       |         +-> return latest_robot_status
+       |
+       v
+  pnet_input_set_data_and_iops()                 状态数据 -> PROFINET 帧 -> PLC
+
+═══════════════════════════════════════════════════════════════════════════════════
+  修改状态:
+  pn_dev 侧:          ✅ 已完成 (app_gsdml + app_data + GSDML XML + CMake)
+  运动控制器侧:         ✅ 已完成 (robot_ros2.cpp 2处修改)
+  待验证:               ⬜ 交叉编译 + 上板联调
+═══════════════════════════════════════════════════════════════════════════════════

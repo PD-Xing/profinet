@@ -1,0 +1,170 @@
+%% PROFINET Robot Control System Architecture
+%% Render: mmdc -i 系统架构图.mmd -o 系统架构图.png -w 2400
+
+---
+title: PROFINET 六轴机械臂控制系统 — 完整架构
+---
+
+```mermaid
+graph TB
+    subgraph PLC["PLC 侧"]
+        direction TB
+        TIA["TIA Portal<br/>%QB0~79 写 / %IB0~79 读"]
+    end
+
+    subgraph OK3576["OK3576 开发板"]
+        direction TB
+
+        subgraph pn_dev["pn_dev (C 进程)"]
+            pnet["p-net 协议栈<br/>pf_cpm 收帧 / pf_ppm 发帧"]
+            bridge["TCP bridge<br/>client → 127.0.0.1:31000"]
+        end
+
+        subgraph robot["robot_software_control (ROS2 进程)"]
+            plc_comm["PLCCommunicator<br/>:31000 监听<br/>recv → handlePLCData<br/>send ← robot_status_frame"]
+            timer["updateRealtimeDataFromTimer<br/>100Hz"]
+            jsc["jointStateCallback<br/>1kHz"]
+
+            timer -->|"buildRobotToPLCFrame()"| plc_comm
+            jsc -->|"notifyPlcActionDone()"| plc_comm
+        end
+    end
+
+    subgraph hardware["硬件层"]
+        arm["六轴机械臂<br/>J1~J6 伺服 + 工具IO + DI/DO + 基板"]
+    end
+
+    PLC -->|"PROFINET RT 1ms<br/>EtherType 0x8892"| pn_dev
+    pnet -->|"app_data_set_output_data<br/>submod 0x151"| bridge
+    bridge -->|"TCP send(80B)"| plc_comm
+    plc_comm -->|"TCP send(80B)"| bridge
+    bridge -->|"app_data_get_input_data<br/>submod 0x150"| pnet
+    pn_dev -->|"PROFINET RT 1ms"| PLC
+    robot -->|"EtherCAT CIA402"| arm
+```
+
+---
+title: 数据协议 PLCFrame (80字节)
+---
+
+```mermaid
+block-beta
+    columns 3
+
+    block:boolgrp:3
+        columns 1
+        bc["bool_data[32] (32字节)"]
+        b1["PLC→Robot: BOOL[0]=上电(↑) BOOL[4]=急停(↑)"]
+        b2["Robot→PLC: BOOL[0]=电源 BOOL[2]=使能 BOOL[6]=Busy BOOL[7]=Moving BOOL[16]=Done"]
+    end
+
+    block:intgrp:3
+        columns 1
+        ic["int_data[8] (16字节)"]
+        i1["PLC→Robot: 全部→DATA_INT[0~7] (程序变量)"]
+        i2["Robot→PLC: 全零 (预留)"]
+    end
+
+    block:realgrp:3
+        columns 1
+        rc["real_data[8] (32字节)"]
+        r1["PLC→Robot: REAL[0~3]=视觉偏移 REAL[4~7]=DATA_REAL"]
+        r2["Robot→PLC: 全零 (预留)"]
+    end
+```
+
+---
+title: 启动与运行时序
+---
+
+```mermaid
+sequenceDiagram
+    participant Robot as 运动控制器
+    participant pn_dev
+    participant PLC
+
+    Note over Robot: t=0s ROS2 launch
+    Robot->>Robot: robot_bringup 启动
+    Robot->>Robot: PLCCommunicator :31000 监听
+
+    Note over Robot: t=5s
+    Robot->>Robot: 检查 EtherCAT 从站 (最长 90s)
+
+    Note over pn_dev: t=6s
+    pn_dev->>pn_dev: app_plc_bridge_start()
+    pn_dev->>Robot: TCP connect(127.0.0.1:31000)
+    Robot-->>pn_dev: 连接成功 (状态帧全零)
+
+    pn_dev->>pn_dev: pnet_init() 等待 PLC
+
+    Note over Robot: t=30s arm_controller 激活
+    Robot->>Robot: 100Hz 定时器开始刷新状态
+
+    Note over PLC: t=35s
+    PLC->>pn_dev: DCP 发现设备
+    pn_dev-->>PLC: 设备应答 rt-labs-dev
+    PLC->>pn_dev: Connect
+    PLC->>pn_dev: PrmEnd (参数化完成)
+    pn_dev-->>PLC: Application Ready
+
+    loop 每 1ms PROFINET 周期
+        PLC->>pn_dev: 周期帧 Output (80字节)
+        pn_dev->>Robot: TCP send(PLCFrame)
+        Robot-->>pn_dev: TCP send(robot_status)
+        pn_dev-->>PLC: 周期帧 Input (80字节)
+    end
+```
+
+---
+title: app_data.c 内部数据流
+---
+
+```mermaid
+flowchart TD
+    tick["PROFINET 1ms tick"] --> cdc["app_cyclic_data_callback()<br/>sampleapp_common.c"]
+
+    cdc --> gdo["pnet_output_get_data_and_iops()<br/>取出 PLC 发来的 80 字节"]
+
+    gdo --> asdo["app_data_set_output_data()<br/>submod_id = 0x151"]
+
+    asdo --> send["send(plc_sock_fd,<br/>PLCFrame, 80)"]
+
+    send --> recv["recv(plc_sock_fd,<br/>PLCFrame, 80)"]
+
+    recv --> cache["latest_robot_status = rx<br/>(缓存)"]
+
+    cdc --> gdi["app_data_get_input_data()<br/>submod_id = 0x150"]
+
+    gdi --> check{"plc_sock_fd > 0 ?"}
+
+    check -->|"是"| good["*iops = PNET_IOXS_GOOD"]
+    check -->|"否"| bad["*iops = PNET_IOXS_BAD"]
+
+    good --> ret["return latest_robot_status<br/>(80字节)"]
+    bad --> ret
+
+    ret --> psi["pnet_input_set_data_and_iops()"]
+    psi --> frame["PROFINET 周期帧 → PLC"]
+```
+
+---
+title: 通信协议栈分层
+---
+
+```mermaid
+graph LR
+    subgraph PLC侧
+        app_plc["应用层<br/>写%Q/读%I"] --> pn_plc["PROFINET 协议栈"]
+        pn_plc --> phy_plc["物理层 (网线 100Mbps)"]
+    end
+
+    subgraph OK3576侧
+        phy_dev["物理层"] --> pn_dev_l["p-net 协议栈<br/>EtherType 0x8892"]
+        pn_dev_l --> app_dev["透传层<br/>send/recv"]
+        app_dev --> tcp["TCP 127.0.0.1:31000"]
+        tcp --> plc_l["PLCCommunicator"]
+        plc_l --> ctrl["运动控制层<br/>handlePLC / buildRobot"]
+    end
+
+    phy_plc -->|"网线直连"| phy_dev
+```

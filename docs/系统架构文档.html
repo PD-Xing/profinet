@@ -1,0 +1,2650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta cha
+.fn-analogy{font-size:.88em;color:var(--muted);margin-top:-12px;margin-bottom:20px;padding:8px 14px;background:rgba(255,145,0,.06);border-left:3px solid var(--orange);border-radius:0 6px 6px 0;line-height:1.7;display:flex;align-items:flex-start;gap:8px}
+.fn-analogy-label{font-weight:700;color:var(--orange);white-space:nowrap;font-size:.85em;flex-shrink:0}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROFINET 六轴机械臂控制系统 — 架构文档</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<style>
+:root {
+  --bg: #1a1a2e; --panel: #16213e; --accent: #0f3460; --hl: #e94560;
+  --text: #eee; --muted: #a0a0b0; --border: #2a2a4a; --green: #00c853;
+  --orange: #ff9100; --blue: #448aff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+header { background: linear-gradient(135deg, #16213e, #0f3460); padding: 48px 24px; text-align: center; border-bottom: 3px solid var(--hl); }
+header h1 { font-size: 2em; margin-bottom: 8px; }
+header p { color: var(--muted); font-size: 1.1em; }
+nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 16px 24px; background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+nav button { padding: 10px 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; font-size: 0.95em; transition: all 0.2s; }
+nav button:hover, nav button.active { background: var(--accent); color: #fff; border-color: var(--hl); }
+main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+section { display: none; animation: fade 0.3s; }
+section.active { display: block; }
+@keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.mermaid { background: #fff; border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center; overflow-x: auto; }
+h2 { font-size: 1.5em; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+h3 { font-size: 1.15em; margin: 24px 0 12px; color: var(--blue); }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.95em; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+th { background: var(--accent); color: #fff; font-weight: 600; }
+tr:hover { background: rgba(255,255,255,0.04); }
+.code-block { background: #0d1117; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 12px 0; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85em; line-height: 1.5; }
+.code-block .kw { color: #ff7b72; } .code-block .fn { color: #d2a8ff; } .code-block .cm { color: #8b949e; } .code-block .str { color: #a5d6ff; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
+.badge-done { background: #00c85333; color: var(--green); }
+.badge-todo { background: #ff910033; color: var(--orange); }
+.badge-info { background: #448aff33; color: var(--blue); }
+.flow-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 16px 0; }
+.flow-box { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; text-align: center; min-width: 120px; flex: 1; }
+.flow-box.label { background: var(--accent); border-color: var(--hl); font-weight: 700; }
+.flow-arrow { font-size: 1.5em; color: var(--muted); }
+details { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+details summary { cursor: pointer; font-weight: 600; color: var(--blue); padding: 4px 0; }
+details[open] { padding-bottom: 20px; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 20px 0; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+.card h4 { margin-bottom: 8px; color: var(--blue); }
+footer { text-align: center; padding: 32px; color: var(--muted); font-size: 0.85em; border-top: 1px solid var(--border); }
+.tl-axis{position:relative;height:70px;background:var(--panel);border-radius:8px;margin:16px 0 4px;overflow:visible}
+.tl-track{position:absolute;top:34px;left:40px;right:40px;height:4px;background:var(--border);border-radius:2px}
+.tl-marker{position:absolute;top:24px;width:16px;height:16px;border-radius:50%;background:var(--blue);border:3px solid var(--bg);cursor:pointer;z-index:2;transition:.2s}
+.tl-marker:hover{transform:scale(1.5);background:var(--hl)}
+.tl-marker.active{background:var(--hl);box-shadow:0 0 14px var(--hl);width:20px;height:20px;top:22px}
+.tl-mlabel{position:absolute;top:0;font-size:0.7em;color:var(--muted);white-space:nowrap;transform:translateX(-50%)}
+.tl-lanes{display:grid;grid-template-columns:70px 1fr;gap:4px;margin:6px 0}
+.tl-lane-label{font-size:0.75em;color:var(--blue);font-weight:600;padding:4px 0}
+.tl-lane{position:relative;height:34px;background:var(--panel);border-radius:6px;overflow:visible}
+.tl-ev{position:absolute;top:5px;height:24px;border-radius:4px;font-size:0.65em;padding:3px 6px;white-space:nowrap;overflow:hidden;cursor:pointer}
+.tl-ev:hover{filter:brightness(1.3);z-index:5}
+.ev-robot{background:var(--blue)}.ev-pn{background:#bb86fc}.ev-plc{background:var(--orange)}
+.tl-ev.active{outline:2px solid #fff;z-index:6}
+.tl-btns{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.tl-btn{padding:6px 14px;border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:16px;cursor:pointer;transition:.2s;font-size:0.82em}
+.tl-btn:hover,.tl-btn.active{background:var(--accent);border-color:var(--hl)}
+.tl-detail{padding:16px;background:var(--panel);border-radius:10px;border:1px solid var(--border);min-height:60px}
+.tl-detail h4{color:var(--hl);margin-bottom:8px}
+.tl-detail ul{margin-left:16px;line-height:1.8}
+.algo{background:var(--panel);border:1px solid var(--border);border-radius:10px;margin:14px 0;overflow:hidden}
+.algo-head{padding:12px 16px;background:rgba(187,134,252,.1);font-weight:700;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.algo-head:hover{background:rgba(187,134,252,.2)}
+.algo-body{padding:18px;display:none;counter-reset:step}
+.algo-head.open+.algo-body{display:block}
+.algo-formula{background:rgba(255,255,255,.04);border-radius:8px;padding:16px;margin:10px 0;text-align:center;overflow-x:auto}
+.algo-step{margin:10px 0;padding-left:30px;position:relative;counter-increment:step}
+.algo-step::before{content:counter(step);position:absolute;left:0;top:0;width:20px;height:20px;background:#bb86fc;border-radius:50%;text-align:center;font-size:0.75em;line-height:20px;font-weight:700}
+.algo-fn{display:inline-block;padding:2px 7px;background:rgba(0,200,83,.15);border-radius:4px;font-family:monospace;font-size:0.88em;color:var(--green);margin:2px 4px}
+.algo-var{display:inline-block;padding:2px 5px;background:rgba(68,138,255,.15);border-radius:4px;font-family:monospace;font-size:0.88em;color:var(--blue);margin:2px 4px}
+
+/* 模式5: 关键函数解析 */
+.fn-index{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0 28px}
+.fn-index-group{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fn-index-label{color:var(--muted);font-size:.8em;font-weight:600;margin-right:4px;white-space:nowrap}
+.fn-tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:.82em;font-family:monospace;background:rgba(68,138,255,.15);color:var(--blue);border:1px solid rgba(68,138,255,.3);text-decoration:none;transition:all .2s}
+.fn-tag:hover{background:rgba(68,138,255,.3);color:#fff}
+.fn-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin:20px 0;overflow:hidden;scroll-margin-top:80px}
+.fn-card-head{display:flex;align-items:center;gap:12px;padding:14px 20px;background:rgba(68,138,255,.08);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.fn-name{font-family:monospace;font-size:1.15em;font-weight:700;color:var(--blue)}
+.fn-file{font-family:monospace;font-size:.85em;color:var(--muted);margin-left:auto}
+.fn-card-body{padding:20px}
+.fn-engineering{font-size:.93em;color:var(--text);margin-bottom:20px;padding:10px 14px;background:rgba(0,200,83,.06);border-left:3px solid var(--green);border-radius:0 6px 6px 0;line-height:1.7}
+.fn-summary{font-size:1.05em;color:var(--text);margin-bottom:20px;padding:10px 14px;background:rgba(255,255,255,.03);border-left:3px solid var(--blue);border-radius:0 6px 6px 0}
+.fn-sig{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:14px 18px;font-family:monospace;font-size:.9em;color:#79c0ff;overflow-x:auto;margin:10px 0 16px;white-space:pre}
+.fn-flow{display:flex;align-items:stretch;gap:8px;margin:14px 0;background:rgba(255,255,255,.02);border-radius:10px;padding:16px;overflow-x:auto}
+.fn-flow-col{display:flex;flex-direction:column;gap:8px;min-width:160px;flex:1}
+.fn-flow-label{font-size:.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.fn-flow-item{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:.88em}
+.fn-flow-src{font-size:.78em;color:var(--muted);display:block;margin-top:3px}
+.fn-flow-process{border-color:var(--blue);background:rgba(68,138,255,.08)}
+.fn-flow-center{align-items:center}
+.fn-flow-arrow{display:flex;align-items:center;font-size:1.4em;color:var(--muted);padding:0 4px;flex-shrink:0}
+.fn-steps{padding-left:0;list-style:none;margin:10px 0}
+.fn-steps li{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.93em}
+.fn-steps li:last-child{border-bottom:none}
+.fn-step-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.78em;font-weight:700;background:rgba(187,134,252,.15);color:var(--purple);white-space:nowrap;flex-shrink:0;margin-top:2px}
+.fn-dep-list{list-style:none;padding:0;margin:8px 0}
+.fn-dep-list li{padding:6px 0;border-bottom:1px solid var(--border);font-size:.9em}
+.fn-dep-list li:last-child{border-bottom:none}
+/* 模式6: 关键名词解析 */
+.gl-filter{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 8px}
+.gl-filter-btn{padding:6px 16px;border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:20px;cursor:pointer;font-size:.88em;transition:all .2s}
+.gl-filter-btn:hover,.gl-filter-btn.active{background:var(--accent);color:#fff;border-color:var(--hl)}
+.gl-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin:16px 0;overflow:hidden;scroll-margin-top:80px;transition:opacity .2s}
+.gl-card.hidden{display:none}
+.gl-card-head{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 20px;background:rgba(187,134,252,.06);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
+.gl-term{font-family:monospace;font-size:1.2em;font-weight:700;color:var(--purple)}
+.gl-term-full{font-size:.88em;color:var(--muted);margin-left:10px}
+.gl-importance{font-size:.95em;letter-spacing:2px}
+.gl-card-body{padding:20px}
+.gl-def-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 20px}
+@media(max-width:640px){.gl-def-row{grid-template-columns:1fr}}
+.gl-def-box{border-radius:8px;padding:12px 14px;font-size:.93em;line-height:1.6}
+.gl-def-standard{background:rgba(160,160,176,.08);border:1px solid rgba(160,160,176,.2)}
+.gl-def-project{background:rgba(187,134,252,.08);border:1px solid rgba(187,134,252,.25)}
+.gl-def-label{font-size:.75em;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;color:var(--muted)}
+.gl-def-project .gl-def-label{color:var(--purple)}
+.gl-relations{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.gl-rel-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;font-size:.9em;flex-wrap:wrap}
+.gl-rel-parent{background:rgba(0,200,83,.06);border:1px solid rgba(0,200,83,.15)}
+.gl-rel-child{background:rgba(68,138,255,.06);border:1px solid rgba(68,138,255,.15)}
+.gl-rel-peer{background:rgba(255,145,0,.06);border:1px solid rgba(255,145,0,.15)}
+.gl-rel-label{font-size:.75em;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.gl-rel-parent .gl-rel-label{background:rgba(0,200,83,.2);color:var(--green)}
+.gl-rel-child .gl-rel-label{background:rgba(68,138,255,.2);color:var(--blue)}
+.gl-rel-peer .gl-rel-label{background:rgba(255,145,0,.2);color:var(--orange)}
+.gl-rel-link{color:var(--purple);font-family:monospace;font-weight:600;text-decoration:none}
+.gl-rel-link:hover{text-decoration:underline}
+.gl-rel-desc{color:var(--muted);font-size:.88em}
+.gl-levels{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.gl-level{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:rgba(255,255,255,.02);border-radius:6px;font-size:.9em}
+.gl-level-tag{padding:3px 10px;border-radius:12px;font-size:.78em;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.gl-level-1{background:rgba(0,200,83,.2);color:var(--green)}
+.gl-level-2{background:rgba(68,138,255,.2);color:var(--blue)}
+.gl-level-3{background:rgba(233,69,96,.2);color:var(--hl)}
+#gl-search{width:100%;padding:10px 14px;margin:12px 0 20px;background:var(--panel);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.95em}
+#gl-search:focus{outline:none;border-color:var(--blue)}
+@media(max-width:768px){nav{position:fixed;left:0;top:0;width:180px;height:100vh;display:flex;flex-direction:column;gap:2px;padding:80px 8px 16px;background:var(--panel);border-right:1px solid var(--border);z-index:100;overflow-y:auto}nav button{padding:10px 12px;border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:8px;cursor:pointer;font-size:.88em;transition:all .2s;text-align:left;width:100%}main{max-width:1200px;margin-left:196px;margin-right:auto;padding:32px 24px}header{padding-left:204px}footer{padding-left:212px}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>六轴机械臂控制系统</h1>
+  <p>PROFINET ↔ pn_dev ↔ TCP ↔ ROS2 ↔ EtherCAT 完整架构文档</p>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('overview', event)">架构总览</button>
+  <button onclick="showTab('timing', event)">启动时序</button>
+  <button onclick="showTab('protocol', event)">PLCFrame 协议</button>
+  <button onclick="showTab('dataflow', event)">数据流</button>
+  <button onclick="showTab('modules', event)">调用关系</button>
+  <button onclick="showTab('algorithms', event)">算法公式</button>
+  <button onclick="showTab('functions', event)">关键函数</button>
+  <button onclick="showTab('glossary', event)">关键名词</button>
+  <button onclick="showTab('status', event)">修改状态</button>
+  <a href="PLC接口对接文档.html" style="padding:10px 20px;border:1px solid var(--border);border-radius:8px;color:var(--green);text-decoration:none;font-size:0.95em">PLC 接口文档 →</a>
+</nav>
+
+<main>
+
+<!-- ==================== TAB 1: 架构总览 ==================== -->
+<section id="overview" class="active">
+<h2>系统架构总览</h2>
+
+<div class="card" style="margin-bottom:24px;border-left:3px solid var(--blue)">
+<p style="font-size:1.05em;line-height:2;color:var(--text)">
+本系统是一个<strong style="color:var(--blue)">PROFINET 设备从站</strong>（pn_dev），运行在 OK3576 ARM Linux 开发板上，
+作为 <strong style="color:var(--orange)">PLC</strong> 与 <strong style="color:var(--blue)">六轴机械臂运动控制器</strong>（robot_ros2）之间的<strong>协议转换桥梁</strong>。
+</p>
+<p style="line-height:2;color:var(--muted)">
+PLC 通过 PROFINET 网线直连开发板，每 1ms 发送 80 字节控制帧。
+pn_dev 接收后<strong>原样透传</strong>给同板上的 ROS2 运动控制器（TCP localhost:31000），
+同时将运动控制器返回的 80 字节状态帧打包回 PROFINET 应答 PLC。
+整个过程<strong>零数据解析</strong>——pn_dev 不知道帧内容的含义，只做 PROFINET ↔ TCP 的格式搬运。
+</p>
+<p style="line-height:2;color:var(--muted)">
+运动控制器通过 <strong>EtherCAT 总线</strong> 连接 11 个从站（6 轴伺服 + 工具 IO + 板载 DI/DO + IMU），
+基于 IgH 主站实现 1kHz 实时控制，通过 MoveIt2 完成运动规划。
+</p>
+</div>
+
+<div class="flow-row">
+  <div class="flow-box label">PLC<br><small>TIA Portal</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">PROFINET RT<br><small>1ms / 80字节</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box label">pn_dev<br><small>C 进程</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">TCP localhost<br><small>127.0.0.1:31000</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box label">robot_ros2<br><small>C++ 进程</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">EtherCAT<br><small>CIA402</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box label">六轴机械臂<br><small>J1~J6</small></div>
+</div>
+
+<div class="mermaid">
+flowchart TB
+    subgraph PLC["PLC 侧"]
+        TIA["TIA Portal<br/>写%QB0~79 / 读%IB0~79"]
+    end
+    subgraph OK3576["OK3576 开发板"]
+        subgraph pn_dev["pn_dev (C)"]
+            pnet["p-net 协议栈<br/>pf_cpm 收帧 / pf_ppm 发帧"]
+            bridge["TCP bridge<br/>127.0.0.1:31000"]
+        end
+        subgraph robot["robot_ros2 (C++)"]
+            plc_comm["PLCCommunicator<br/>:31000 监听"]
+            timer["updateRealtimeDataFromTimer<br/>100Hz 刷新状态帧"]
+            jsc["jointStateCallback<br/>1kHz 轨迹完成检测"]
+            timer -->|"buildRobotToPLCFrame"| plc_comm
+            jsc -->|"notifyPlcActionDone"| plc_comm
+        end
+    end
+    subgraph hardware["硬件层"]
+        arm["六轴机械臂<br/>J1~J6 + 工具IO + DI/DO + 基板"]
+    end
+    PLC -->|"PROFINET RT 1ms"| pn_dev
+    pnet -->|"Output 80B"| bridge
+    bridge -->|"TCP send"| plc_comm
+    plc_comm -->|"TCP send"| bridge
+    bridge -->|"Input 80B"| pnet
+    pn_dev -->|"PROFINET RT 1ms"| PLC
+    robot -->|"EtherCAT CIA402"| arm
+</div>
+<img src="mermaid/01_架构总览.png" alt="系统架构总览" class="mermaid-fallback" style="display:none;max-width:100%;margin:24px auto">
+
+<div class="card-grid">
+  <div class="card">
+    <h4>PLC 侧</h4>
+    <p>只需做两件事：</p>
+    <ul style="margin:8px 0 0 16px;line-height:2">
+      <li>导入 GSDML → 拖入 PLC Frame 模块</li>
+      <li>读写 %Q/%I 区（80字节），替代原来 TCP 通信</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>pn_dev 侧</h4>
+    <p>透传桥接，不解析数据：</p>
+    <ul style="margin:8px 0 0 16px;line-height:2">
+      <li>PROFINET 收 80B → TCP send</li>
+      <li>TCP recv 80B → PROFINET 发</li>
+      <li>TCP 断开时 IOPS=BAD 通知 PLC</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>robot_ros2 侧</h4>
+    <p>复用已有 PLCCommunicator：</p>
+    <ul style="margin:8px 0 0 16px;line-height:2">
+      <li>31000 端口监听，收发 PLCFrame</li>
+      <li>100Hz 定时器刷新状态帧</li>
+      <li>handlePLCData 处理上下电/急停/视觉偏移</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<!-- ==================== TAB 2: 时序 ==================== -->
+<section id="timing">
+<h2>启动与运行时序</h2>
+
+<!-- ===== Mermaid 时序总览 ===== -->
+<div class="mermaid">
+sequenceDiagram
+    participant Robot as 运动控制器
+    participant pn_dev
+    participant PLC
+    Note over Robot: t=0s ROS2 launch
+    Robot->>Robot: robot_bringup 启动
+    Robot->>Robot: PLCCommunicator :31000 监听
+    Note over Robot: t=5s
+    Robot->>Robot: 检查 EtherCAT 从站 (最长90s)
+    Note over pn_dev: t=6s pn_dev 启动
+    pn_dev->>pn_dev: app_plc_bridge_start()
+    pn_dev->>Robot: TCP connect(127.0.0.1:31000)
+    Robot-->>pn_dev: 连接成功
+    pn_dev->>pn_dev: pnet_init() 等待PLC
+    Note over Robot: t=30s arm_controller 激活
+    Robot->>Robot: 100Hz 定时器开始刷新状态帧
+    Note over PLC: t=35s
+    PLC->>pn_dev: DCP 发现设备
+    pn_dev-->>PLC: 设备应答 rt-labs-dev
+    PLC->>pn_dev: Connect + PrmEnd
+    pn_dev-->>PLC: Application Ready
+    loop 每1ms PROFINET周期
+        PLC->>pn_dev: Output 80B
+        pn_dev->>Robot: TCP send(PLCFrame)
+        Robot-->>pn_dev: TCP send(status)
+        pn_dev-->>PLC: Input 80B
+    end
+</div>
+<img src="mermaid/02_启动时序.png" alt="启动时序图" class="mermaid-fallback" style="display:none;max-width:100%;margin:24px auto">
+
+<p style="color:var(--muted);margin-bottom:20px">
+下方时间轴可点击查看各时刻的详细状态。
+</p>
+
+<!-- ===== 交互式时间轴 ===== -->
+<div class="tl-axis"><div class="tl-track"></div>
+<div class="tl-marker" data-t="0" style="left:3%" onclick="showTL(0)"></div>
+<div class="tl-marker" data-t="5" style="left:18%" onclick="showTL(5)"></div>
+<div class="tl-marker" data-t="6" style="left:24%" onclick="showTL(6)"></div>
+<div class="tl-marker" data-t="30" style="left:58%" onclick="showTL(30)"></div>
+<div class="tl-marker" data-t="35" style="left:74%" onclick="showTL(35)"></div>
+<div class="tl-marker" data-t="run" style="left:94%" onclick="showTL('run')"></div>
+<div class="tl-mlabel" style="left:3%">t=0s</div><div class="tl-mlabel" style="left:18%">t=5s</div><div class="tl-mlabel" style="left:24%">t=6s</div><div class="tl-mlabel" style="left:58%">t=30s</div><div class="tl-mlabel" style="left:74%">t=35s</div><div class="tl-mlabel" style="left:94%">稳态</div></div>
+
+<div class="tl-lanes">
+<div class="tl-lane-label">Robot</div><div class="tl-lane"><div class="tl-ev ev-robot" style="left:1%;width:9%" data-t="0" onclick="showTL(0)">Launch</div><div class="tl-ev ev-robot" style="left:15%;width:40%" data-t="5" onclick="showTL(5)">EtherCAT 从站检查</div><div class="tl-ev ev-robot" style="left:57%;width:40%" data-t="30" onclick="showTL(30)">控制器激活 + 100Hz 定时器</div></div>
+<div class="tl-lane-label">pn_dev</div><div class="tl-lane"><div class="tl-ev ev-pn" style="left:22%;width:18%" data-t="6" onclick="showTL(6)">TCP 连接</div><div class="tl-ev ev-pn" style="left:72%;width:26%" data-t="run" onclick="showTL('run')">1ms send/recv 周期</div></div>
+<div class="tl-lane-label">PLC</div><div class="tl-lane"><div class="tl-ev ev-plc" style="left:72%;width:26%" data-t="35" onclick="showTL(35)">DCP 发现 → IO 数据</div></div></div>
+
+<div class="tl-btns">
+<button class="tl-btn active" data-tl="0" onclick="showTL(0)">t=0 启动</button>
+<button class="tl-btn" data-tl="5" onclick="showTL(5)">t=5 检查</button>
+<button class="tl-btn" data-tl="6" onclick="showTL(6)">t=6 pn_dev</button>
+<button class="tl-btn" data-tl="30" onclick="showTL(30)">t=30 就绪</button>
+<button class="tl-btn" data-tl="35" onclick="showTL(35)">t=35 联机</button>
+<button class="tl-btn" data-tl="run" onclick="showTL('run')">稳态</button></div>
+
+<div class="tl-detail" id="tlDetail"><h4>点击按钮查看详情</h4></div>
+
+<!-- ===== 事件总览表 ===== -->
+<h3 style="margin-top:32px">事件总览</h3>
+<table>
+<tr><th>时刻</th><th>Robot</th><th>pn_dev</th><th>PLC</th><th>关键消息</th></tr>
+<tr>
+  <td><strong>t=0s</strong></td>
+  <td>ros2 launch<br/>PLCCommunicator :31000 监听</td>
+  <td style="color:var(--muted)">未启动</td>
+  <td style="color:var(--muted)">未连接</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><strong>t=5s</strong></td>
+  <td>轮询 11 个 EtherCAT 从站<br/>等待 PREOP+（最长 90s）</td>
+  <td style="color:var(--muted)">未启动</td>
+  <td style="color:var(--muted)">未连接</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><strong>t=6s</strong></td>
+  <td>接受 TCP 连接</td>
+  <td>启动 → app_plc_bridge_start()<br/>→ TCP connect 127.0.0.1:31000 ✓<br/>→ pnet_init() 等待 PLC</td>
+  <td style="color:var(--muted)">未连接</td>
+  <td><span style="color:var(--purple)">pn_dev</span> → <span style="color:var(--blue)">Robot</span>: TCP SYN<br/><span style="color:var(--blue)">Robot</span> → <span style="color:var(--purple)">pn_dev</span>: TCP ACK</td>
+</tr>
+<tr>
+  <td><strong>t=30s</strong></td>
+  <td>arm_controller 激活<br/>100Hz buildRobotToPLCFrame<br/>1kHz jointStateCallback</td>
+  <td>1ms tick 运行中<br/>TCP 连通，状态帧有实际数据</td>
+  <td style="color:var(--muted)">未连接</td>
+  <td><span style="color:var(--purple)">pn_dev</span> ⇄ <span style="color:var(--blue)">Robot</span>: TCP PLCFrame 80B</td>
+</tr>
+<tr>
+  <td><strong>t=35s</strong></td>
+  <td>收到第一帧 PLC 命令<br/>handlePLCData() 开始工作</td>
+  <td>DCP 应答 rt-labs-dev<br/>Application Ready → 周期 IO</td>
+  <td>DCP 发现 → SET IP<br/>Connect → PrmEnd<br/>开始 1ms 周期 IO</td>
+  <td><span style="color:var(--orange)">PLC</span> → <span style="color:var(--purple)">pn_dev</span>: DCP SET<br/><span style="color:var(--orange)">PLC</span> → <span style="color:var(--purple)">pn_dev</span>: CONNECT<br/><span style="color:var(--purple)">pn_dev</span> → <span style="color:var(--orange)">PLC</span>: APPL_RDY</td>
+</tr>
+<tr>
+  <td><strong>稳态</strong></td>
+  <td>100Hz 刷新状态帧<br/>1kHz 轨迹完成检测<br/>handlePLCData 处理命令</td>
+  <td>PROFINET ⇄ TCP 透传<br/>每 100ms 轮询一次数据</td>
+  <td>每 1ms 写 Q 区 / 读 I 区</td>
+  <td><span style="color:var(--orange)">PLC</span> ⇄ <span style="color:var(--purple)">pn_dev</span>: 1ms RT<br/><span style="color:var(--purple)">pn_dev</span> ⇄ <span style="color:var(--blue)">Robot</span>: TCP 80B</td>
+</tr>
+</table>
+
+<!-- ===== 启动顺序建议 ===== -->
+<details style="margin-top:24px">
+<summary><b>启动顺序建议 & start_all.sh</b></summary>
+<p>运动控制器先启动（端口31000监听就绪），pn_dev后启动。pn_dev自带TCP重连，所以即使顺序反过来也能自动恢复。</p>
+<div class="code-block">
+<span class="cm">#!/bin/bash</span>
+<span class="cm"># start_all.sh — 部署在开发板的 /home/default/</span>
+
+<span class="cm"># 1. 启运动控制器</span>
+<span class="kw">source</span> /opt/ros/humble/setup.bash
+ros2 launch robot_moveit_config robot_complete.launch.py &
+
+<span class="cm"># 2. 等 PLC 端口就绪</span>
+<span class="kw">for</span> i in $(seq 1 60); <span class="kw">do</span>
+    ss -tln | grep -q 31000 && <span class="kw">break</span>
+    sleep 1
+<span class="kw">done</span>
+
+<span class="cm"># 3. 启 pn_dev</span>
+sudo ./pn_dev -i eth0 -s rt-labs-dev -p /tmp/pnet &
+</div>
+</details>
+</section>
+
+<!-- ==================== TAB 3: 协议 ==================== -->
+<section id="protocol">
+<h2>PLCFrame 协议 (80字节)</h2>
+
+<div class="mermaid">
+flowchart TB
+    plc["PLCFrame 80 字节"]
+    plc --> bool_grp["bool_data[32]<br/>32字节 BOOL 0~255"]
+    plc --> int_grp["int_data[8]<br/>16字节 INT 0~7"]
+    plc --> real_grp["real_data[8]<br/>32字节 REAL 0~7"]
+
+    bool_grp --> bool_out["PLC 输出:<br/>bit0=上电  bit4=急停"]
+    bool_grp --> bool_in["Robot 输入:<br/>bit0=电源 bit2=使能<br/>bit6=Busy bit7=Moving<br/>bit16=Done bit17/18=夹爪"]
+    int_grp --> int_out["PLC 输出:<br/>DATA_INT 0~7 程序变量"]
+    int_grp --> int_in["Robot 输入:<br/>全零 预留"]
+    real_grp --> real_out["PLC 输出:<br/>REAL 0~3=视觉偏移<br/>REAL 4~7=程序变量"]
+    real_grp --> real_in["Robot 输入:<br/>全零 预留"]
+</div>
+	<img src="mermaid/04_PLCFrame协议.png" alt="PLCFrame 结构图" class="mermaid-fallback" style="display:none;max-width:100%;margin:24px auto">
+
+<h3>PLC → Robot 信号表</h3>
+<table>
+<tr><th>地址</th><th>信号</th><th>触发</th><th>功能</th></tr>
+<tr><td>%QB0.0</td><td>BOOL[0]</td><td>上升沿</td><td>上电启动</td></tr>
+<tr><td>%QB0.4</td><td>BOOL[4]</td><td>上升沿</td><td>软急停</td></tr>
+<tr><td>%QD48~60</td><td>REAL[0~3]</td><td>连续</td><td>视觉偏移 X/Y/Z/R</td></tr>
+<tr><td>%QB0~31</td><td>BOOL[0~255]</td><td>连续</td><td>程序变量 DATA_BOOL</td></tr>
+<tr><td>%QW32~46</td><td>INT[0~7]</td><td>连续</td><td>程序变量 DATA_INT</td></tr>
+<tr><td>%QD48~76</td><td>REAL[0~7]</td><td>连续</td><td>程序变量 DATA_REAL</td></tr>
+</table>
+
+<h3>Robot → PLC 信号表</h3>
+<table>
+<tr><th>地址</th><th>信号</th><th>来源</th><th>说明</th></tr>
+<tr><td>%IB0.0</td><td>BOOL[0]</td><td>gpio_safety_get_state()</td><td>电源已上电</td></tr>
+<tr><td>%IB0.1</td><td>BOOL[1]</td><td>EnableStatus==0</td><td>告警</td></tr>
+<tr><td>%IB0.2</td><td>BOOL[2]</td><td>EnableStatus!=0</td><td>已使能</td></tr>
+<tr><td>%IB0.6</td><td>BOOL[6]</td><td>trajectory_cache_.is_active</td><td>轨迹执行中</td></tr>
+<tr><td>%IB0.7</td><td>BOOL[7]</td><td>sum|qd| > 0.005</td><td>关节运动中</td></tr>
+<tr><td>%IB2.0</td><td>BOOL[16]</td><td>done_expire 300ms</td><td>动作完成</td></tr>
+<tr><td>%IB2.1~2</td><td>BOOL[17~18]</td><td>AI0/AI1 > 128</td><td>夹爪闭合</td></tr>
+<tr><td>%IB4.0~1</td><td>BOOL[32~33]</td><td>tool DI bit0/1</td><td>夹爪有料</td></tr>
+<tr><td>%IB4.2~5</td><td>BOOL[34~37]</td><td>board DI bit0~3</td><td>板载传感器</td></tr>
+</table>
+</section>
+
+<!-- ==================== TAB 4: 数据流 ==================== -->
+<section id="dataflow">
+<h2>数据流详解</h2>
+
+<p style="color:var(--muted);margin-bottom:24px">
+本章是理解代码的核心入口，按三层展开：端到端数据路径 → 每个关键函数的内部逻辑 → p-net 框架的 buffer 机制。
+</p>
+
+<!-- ===== 3.1 整体数据流 ===== -->
+<h3>3.1 端到端数据路径</h3>
+
+<div class="mermaid">
+flowchart TD
+    tick["PROFINET 1ms tick"]
+    tick --> cdc["app_cyclic_data_callback"]
+    cdc --> gdo["pnet_output_get_data_and_iops<br/>取出 PLC 发来的 80 字节"]
+    cdc --> gdi["app_data_get_input_data<br/>submod_id = 0x150"]
+
+    gdo --> asdo["app_data_set_output_data<br/>submod_id = 0x151"]
+    asdo --> send["TCP send PLCFrame 80 字节"]
+    send --> recv["TCP recv PLCFrame 80 字节"]
+    recv --> cache["缓存: latest_robot_status"]
+
+    gdi --> check{"plc_sock_fd > 0 ?"}
+    check -->|"是"| good["iops = PNET_IOXS_GOOD"]
+    check -->|"否"| bad["iops = PNET_IOXS_BAD"]
+    good --> ret["return latest_robot_status"]
+    bad --> ret
+    ret --> psi["pnet_input_set_data_and_iops"]
+    psi --> frame["PROFINET 周期帧 - PLC"]
+</div>
+<img src="mermaid/03_数据流.png" alt="pn_dev 内部数据流" class="mermaid-fallback" style="display:none;max-width:100%;margin:24px auto">
+
+<div class="card" style="margin-top:16px">
+<h4>逐步走读（一次完整的 1ms 周期）</h4>
+<table>
+<tr><th>步骤</th><th>位置</th><th>线程</th><th>动作</th></tr>
+<tr>
+  <td>① 帧到达</td>
+  <td><code>pf_eth.c</code></td>
+  <td style="color:var(--purple)">ETH RX</td>
+  <td>网卡收到 PROFINET RT 帧（EtherType 0x8892）→ 提取 FrameID → 查表路由到 <code>pf_cpm_c_data_ind()</code></td>
+</tr>
+<tr>
+  <td>② Buffer 交换</td>
+  <td><code>pf_cpm_driver_sw.c</code></td>
+  <td style="color:var(--purple)">ETH RX</td>
+  <td>验证循环计数器、拷贝负载到内部 <code>p_buffer_cpm</code>，置 <code>new_buf = true</code></td>
+</tr>
+<tr>
+  <td>③ 定时器触发</td>
+  <td><code>sampleapp_common.c</code></td>
+  <td style="color:var(--blue)">主线程</td>
+  <td>1ms tick → 计数器累加 → 每 100 tick 调用 <code>app_handle_cyclic_data()</code></td>
+</tr>
+<tr>
+  <td>④ 读取输出</td>
+  <td><code>sampleapp_common.c</code></td>
+  <td style="color:var(--blue)">主线程</td>
+  <td><code>pnet_output_get_data_and_iops()</code> → CPM 驱动从 <code>p_buffer_app</code> memcpy 出 80 字节</td>
+</tr>
+<tr>
+  <td>⑤ TCP 转发</td>
+  <td><code>app_data.c</code></td>
+  <td style="color:var(--blue)">主线程</td>
+  <td><code>send()</code> 80 字节到 127.0.0.1:31000 → 立即 <code>recv()</code> 80 字节响应，缓存到 <code>latest_robot_status</code></td>
+</tr>
+<tr>
+  <td>⑥ 写入输入</td>
+  <td><code>sampleapp_common.c</code></td>
+  <td style="color:var(--blue)">主线程</td>
+  <td><code>app_data_get_input_data()</code> 返回缓存状态 → <code>pnet_input_set_data_and_iops()</code> 写入 PPM buffer</td>
+</tr>
+<tr>
+  <td>⑦ 帧发送</td>
+  <td><code>pf_ppm_driver_sw.c</code></td>
+  <td style="color:var(--blue)">主线程</td>
+  <td>PPM 发送定时器到期 → <code>pf_ppm_finish_buffer()</code> 组装帧 → <code>pnal_eth_send()</code> 发出</td>
+</tr>
+</table>
+</div>
+
+<div class="card" style="margin-top:16px">
+<h4>时序特征</h4>
+<table>
+<tr><th>参数</th><th>值</th><th>说明</th></tr>
+<tr><td>PROFINET 周期</td><td>1 ms</td><td>PLC 侧发送周期</td></tr>
+<tr><td>应用轮询周期</td><td>100 ms</td><td><code>APP_TICKS_UPDATE_DATA = 100</code>，即每 100 个 tick 才触发一次数据回调</td></tr>
+<tr><td>TCP send+recv</td><td>同步阻塞</td><td>在回调线程内 <code>send()</code> 后立即 <code>recv(MSG_WAITALL)</code>，会阻塞整个回调链</td></tr>
+<tr><td>IOPS 更新</td><td>实时</td><td>根据 <code>plc_sock_fd</code> 有效性动态设置 GOOD/BAD，PLC 无需额外心跳</td></tr>
+</table>
+</div>
+
+<!-- ===== 3.2 关键函数详解 ===== -->
+<h3>3.2 关键函数详解</h3>
+
+<div class="algo">
+  <div class="algo-head open" onclick="this.classList.toggle('open')">
+    <span>app_cyclic_data_callback() — 周期回调调度器</span>
+    <span style="font-size:0.85em;color:var(--muted)">折叠</span>
+  </div>
+  <div class="algo-body">
+    <h4>签名与位置</h4>
+    <p><span class="algo-fn">app_cyclic_data_callback()</span> sampleapp_common.c:991 | <code>static void</code> | 主线程</p>
+
+    <h4>输入</h4>
+    <table>
+    <tr><th>参数</th><th>含义</th></tr>
+    <tr><td><code>app_subslot_t * subslot</code></td><td>当前被轮询的 subslot 描述符（含 slot_nbr、subslot_nbr、submodule_id、I/O 方向）</td></tr>
+    <tr><td><code>void * tag</code></td><td>指向 <code>app_data_t</code> 的上下文指针</td></tr>
+    </table>
+
+    <h4>逻辑</h4>
+    <ol>
+    <li>校验 <code>tag</code> 非空，跳过 DAP subslot（DAP 没有 I/O 数据）</li>
+    <li><strong>输出路径</strong>（仅 <code>outsize > 0</code> 的 subslot）：调用 <code>pnet_output_get_data_and_iops()</code> 拉取 PLC 发来的数据 → 若 IOPS=GOOD 则调用 <code>app_data_set_output_data()</code>，否则调用 <code>app_set_outputs_default_value()</code>（安全值）</li>
+    <li><strong>输入路径</strong>（仅 <code>insize > 0</code> 的 subslot）：调用 <code>app_data_get_input_data()</code> 获取返回给 PLC 的数据 → <code>pnet_input_set_data_and_iops()</code> 推入 p-net 栈 → 读回 <code>pnet_input_get_iocs()</code> 检查 PLC 侧消费状态</li>
+    </ol>
+
+    <h4>调用链</h4>
+    <p><code>app_loop_forever()</code> → <code>app_handle_event_timer()</code> → <code>app_handle_cyclic_data()</code> → <code>app_utils_cyclic_data_poll()</code> → 遍历所有已插拔 subslot 调用此回调</p>
+  </div>
+</div>
+
+<div class="algo">
+  <div class="algo-head" onclick="this.classList.toggle('open')">
+    <span>app_data_set_output_data() — PLC→Robot 转发</span>
+    <span style="font-size:0.85em;color:var(--muted)">展开</span>
+  </div>
+  <div class="algo-body">
+    <h4>签名与位置</h4>
+    <p><span class="algo-fn">app_data_set_output_data()</span> app_data.c:319 | <code>int</code> | 主线程（被 cyclic callback 调用）</p>
+
+    <h4>输入</h4>
+    <table>
+    <tr><th>参数</th><th>含义</th></tr>
+    <tr><td><code>slot_nbr, subslot_nbr</code></td><td>PROFINET 槽位号</td></tr>
+    <tr><td><code>submodule_id</code></td><td>子模块 ID，路由到不同处理分支</td></tr>
+    <tr><td><code>data, size</code></td><td>PLC 发来的原始字节 + 长度</td></tr>
+    </table>
+
+    <h4>PLC Frame 分支逻辑（submod_id = 0x151）</h4>
+    <ol>
+    <li>校验 <code>size >= 80</code></li>
+    <li>若 <code>plc_sock_fd > 0</code>（已连接运动控制器）：将 <code>data</code> 拷贝为 <code>PLCFrame tx</code> → <code>send(fd, &tx, 80, MSG_NOSIGNAL)</code> → <strong>立即同步</strong> <code>recv(fd, &rx, 80, MSG_WAITALL)</code> → 加锁写入 <code>latest_robot_status</code></li>
+    <li>若 send/recv 失败：关闭 <code>plc_sock_fd</code>，置 -1（TCP 后台线程会在 1 秒后重连）</li>
+    </ol>
+
+    <h4>其他分支</h4>
+    <table>
+    <tr><th>submodule_id</th><th>行为</th></tr>
+    <tr><td>0x131（Digital Out）</td><td>1 字节 → 根据 bit7 控制 LED → 串口输出变化</td></tr>
+    <tr><td>0x132（Digital IO）</td><td>同上，1 字节输出</td></tr>
+    <tr><td>0x140（Echo）</td><td>8 字节 → 存入 <code>echo_outputdata[]</code>，供输入侧乘以增益后回传</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="algo">
+  <div class="algo-head" onclick="this.classList.toggle('open')">
+    <span>app_data_get_input_data() — Robot→PLC 状态返回</span>
+    <span style="font-size:0.85em;color:var(--muted)">展开</span>
+  </div>
+  <div class="algo-body">
+    <h4>签名与位置</h4>
+    <p><span class="algo-fn">app_data_get_input_data()</span> app_data.c:218 | <code>uint8_t *</code> | 主线程</p>
+
+    <h4>输出</h4>
+    <table>
+    <tr><th>输出参数</th><th>含义</th></tr>
+    <tr><td><code>返回值</code></td><td>指向静态缓冲区的指针（调用者不应释放）</td></tr>
+    <tr><td><code>*size</code></td><td>数据长度（PLC Frame = 80，Digital = 1，Echo = 8）</td></tr>
+    <tr><td><code>*iops</code></td><td>IO Provider Status：GOOD（TCP 连通）或 BAD（TCP 断开）</td></tr>
+    </table>
+
+    <h4>PLC Frame 分支逻辑（submod_id = 0x150）</h4>
+    <ol>
+    <li>加锁 <code>status_mutex</code>，将 <code>latest_robot_status</code> 拷贝到线程本地 <code>static</code> 缓冲区</li>
+    <li>设置 <code>*size = 80</code></li>
+    <li>若 <code>plc_sock_fd > 0</code> → <code>*iops = PNET_IOXS_GOOD</code>；否则 → <code>*iops = PNET_IOXS_BAD</code></li>
+    <li>返回缓冲区指针</li>
+    </ol>
+
+    <h4>IOPS 设计意图</h4>
+    <p>PLC 侧读到 IOPS=BAD 时，应判定运动控制器离线，进入安全状态。这是<strong>控制链路健康监测</strong>的唯一指标——无需额外心跳协议。</p>
+  </div>
+</div>
+
+<div class="algo">
+  <div class="algo-head" onclick="this.classList.toggle('open')">
+    <span>plc_tcp_thread_fn() — TCP 连接生命周期</span>
+    <span style="font-size:0.85em;color:var(--muted)">展开</span>
+  </div>
+  <div class="algo-body">
+    <h4>签名与位置</h4>
+    <p><span class="algo-fn">plc_tcp_thread_fn()</span> app_data.c:118 | <code>static void *</code> | 独立线程</p>
+
+    <h4>线程模型</h4>
+    <p>由 <code>app_plc_bridge_start()</code> 在启动时创建。独立于主事件循环线程运行。</p>
+
+    <h4>逻辑</h4>
+    <ol>
+    <li><strong>外层循环（重连）</strong>：<code>socket()</code> → <code>connect(127.0.0.1:31000)</code>，失败则 sleep(1) 重试</li>
+    <li>连接成功：将 fd 写入全局 <code>plc_sock_fd</code>（主线程通过此变量感知连接状态）</li>
+    <li><strong>内层循环（保活）</strong>：sleep(1) 循环，直到检测到 fd 被主线程关闭（send/recv 失败时）或线程被通知退出</li>
+    <li>断开：<code>close(fd)</code>，若 <code>plc_sock_fd == fd</code> 则置 -1，回到外层循环重连</li>
+    </ol>
+
+    <h4>注意</h4>
+    <p>此线程<strong>不参与数据收发</strong>——实际 send/recv 发生在主线程的 <code>app_data_set_output_data()</code> 中。此线程仅负责 connect / reconnect 生命周期管理。</p>
+  </div>
+</div>
+
+<!-- ===== 3.3 框架内部数据流 ===== -->
+<h3>3.3 p-net 框架内部数据流</h3>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>CPM — Consumer Protocol Machine</h4>
+    <p style="color:var(--muted)">PLC → 设备（Output）</p>
+    <ul style="margin:8px 0 0 16px;line-height:2">
+      <li><strong>接收</strong>：异步，在 ETH RX 线程中</li>
+      <li><strong>缓冲</strong>：双缓冲（<code>p_buffer_cpm</code> / <code>p_buffer_app</code>）+ 互斥锁</li>
+      <li><strong>标志</strong>：<code>new_buf = true</code> 表示新数据到达</li>
+      <li><strong>读取</strong>：主线程通过 <code>pf_cpm_get_data_and_iops()</code> 拉取</li>
+      <li><strong>看门狗</strong>：Data Hold Timer，每 control_interval 递增 dht，超时触发 ABORT</li>
+      <li><strong>关键文件</strong>：<code>pf_cpm.c</code> <code>pf_cpm_driver_sw.c</code></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>PPM — Provider Protocol Machine</h4>
+    <p style="color:var(--muted)">设备 → PLC（Input）</p>
+    <ul style="margin:8px 0 0 16px;line-height:2">
+      <li><strong>写入</strong>：主线程通过 <code>pf_ppm_set_data_and_iops()</code> 写入 <code>buffer_data[]</code></li>
+      <li><strong>缓冲</strong>：单缓冲 + 互斥锁</li>
+      <li><strong>发送</strong>：调度器定时触发 <code>pf_ppm_drv_sw_send()</code></li>
+      <li><strong>组装</strong>：<code>pf_ppm_finish_buffer()</code> 将 buffer_data memcpy 到以太网帧 + 插入循环计数器 + 数据状态位</li>
+      <li><strong>周期</strong>：由 <code>control_interval</code> 决定（来自 IOCR 参数 × reduction_ratio）</li>
+      <li><strong>关键文件</strong>：<code>pf_ppm.c</code> <code>pf_ppm_driver_sw.c</code></li>
+    </ul>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+<h4>一帧数据的完整旅程</h4>
+<pre style="color:var(--muted);font-size:0.82em;line-height:1.8;background:rgba(0,0,0,0.2);padding:16px;border-radius:8px;overflow-x:auto">
+PLC 发出 PROFINET 帧
+  │
+  ▼ [ETH RX 线程 — 异步]
+pf_eth_recv()                     ← 网卡收到帧
+  → pf_cpm_c_data_ind()           ← FrameID 路由
+    → pf_cpm_put_buf()            ← 双缓冲交换，new_buf = true
+    → pf_fspm_data_status_changed()
+  │
+  ▼ [主线程 — 1ms tick]
+pnet_handle_periodic()
+  → pf_scheduler_tick()           ← 触发到期定时器
+    → pf_ppm_drv_sw_send()        ← PPM 发送上次写入的数据
+    → pf_cpm_control_interval_expired() ← CPM 看门狗
+  │
+  ▼ [主线程 — 每 100ms]
+app_handle_cyclic_data()
+  → app_utils_cyclic_data_poll()
+    → app_cyclic_data_callback()
+      → pnet_output_get_data_and_iops()  ← 拉取 CPM 缓冲
+      → app_data_set_output_data()       ← TCP send + recv
+      → app_data_get_input_data()        ← 读取缓存状态
+      → pnet_input_set_data_and_iops()   ← 推入 PPM 缓冲
+  │
+  ▼ [主线程 — 下次 PPM 定时器到期]
+pf_ppm_drv_sw_send()
+  → pf_ppm_finish_buffer()        ← 组装以太网帧
+  → pnal_eth_send()               ← 网卡发出
+
+PLC 收到 PROFINET 帧
+</pre>
+</div>
+</section>
+
+<!-- ==================== TAB 5: 调用关系 ==================== -->
+<section id="modules">
+<h2>模块与调用关系</h2>
+
+<p style="color:var(--muted);margin-bottom:24px">
+聚焦两层关系：函数之间谁调用谁，源文件之间谁依赖谁。
+</p>
+
+<!-- ===== 4.1 调用关系图 ===== -->
+<h3>4.1 函数调用关系图</h3>
+
+<div class="mermaid">
+flowchart TB
+    subgraph startup["Startup 启动"]
+        direction TB
+        main["main"] --> adi["app_data_init"]
+        adi --> bridge["app_plc_bridge_start<br/>TCP 线程启动"]
+        main --> pnet["pnet_init<br/>等待 PLC 连接"]
+    end
+
+    subgraph cyclic["PROFINET 1ms 周期"]
+        direction TB
+        cdc["app_cyclic_data_callback"]
+        cdc --> setout["app_data_set_output_data<br/>TCP send PLCFrame"]
+        cdc --> getin["app_data_get_input_data<br/>TCP recv - PROFINET"]
+    end
+
+    subgraph robot["robot_ros2 核心 100Hz"]
+        direction TB
+        timer["100Hz 定时器"] --> build["buildRobotToPLCFrame"]
+        build --> update["updateRobotStatus"]
+        jsc["jointStateCallback 1kHz"] --> notify["notifyPlcActionDone"]
+        notify --> build
+    end
+
+    subgraph comm["TCP localhost :31000"]
+        plc_comm["PLCCommunicator<br/>收发 80 字节 PLCFrame"]
+    end
+
+    setout --> plc_comm
+    plc_comm --> getin
+    update --> plc_comm
+    plc_comm --> handle["handlePLCData<br/>处理上下电/急停"]
+</div>
+
+<!-- ===== 4.2 函数调用链 ===== -->
+<h3>4.2 函数调用链</h3>
+
+<div class="card">
+<h4>启动阶段</h4>
+<table>
+<tr><th>深度</th><th>函数</th><th>文件</th><th>职责</th></tr>
+<tr><td>0</td><td><code>main()</code></td><td>ports/linux/sampleapp_main.c</td><td>入口：解析 CLI 参数、读取网卡 IP</td></tr>
+<tr><td>1</td><td>→ <code>app_data_init()</code></td><td>app_data.c</td><td>打开 /dev/ttyFIQ0 串口调试输出</td></tr>
+<tr><td>1</td><td>→ <code>app_plc_bridge_start()</code></td><td>app_data.c</td><td>创建 TCP 连接线程</td></tr>
+<tr><td>1</td><td>→ <code>app_init()</code></td><td>sampleapp_common.c</td><td>pnet_init_only() 初始化协议栈</td></tr>
+<tr><td>1</td><td>→ <code>app_start()</code></td><td>sampleapp_common.c</td><td>创建主事件线程（或阻塞在主线程）</td></tr>
+<tr><td>2</td><td>&nbsp;&nbsp;→ <code>app_loop_forever()</code></td><td>sampleapp_common.c</td><td>plug DAP → 进入 os_event_wait 事件循环</td></tr>
+</table>
+</div>
+
+<div class="card" style="margin-top:16px">
+<h4>稳态运行阶段（1ms tick → 事件分发）</h4>
+<table>
+<tr><th>深度</th><th>函数</th><th>文件</th><th>频率</th></tr>
+<tr><td>0</td><td><code>app_loop_forever()</code></td><td>sampleapp_common.c</td><td>永久循环</td></tr>
+<tr><td>1</td><td>→ <code>app_handle_event_timer()</code></td><td>sampleapp_common.c</td><td>每 1ms</td></tr>
+<tr><td>2</td><td>&nbsp;&nbsp;→ <code>update_button_states()</code></td><td>sampleapp_common.c</td><td>每 10ms（APP_TICKS_READ_BUTTONS=10）</td></tr>
+<tr><td>2</td><td>&nbsp;&nbsp;→ <code>app_handle_cyclic_data()</code></td><td>sampleapp_common.c</td><td>每 100ms（APP_TICKS_UPDATE_DATA=100）</td></tr>
+<tr><td>3</td><td>&nbsp;&nbsp;&nbsp;&nbsp;→ <code>app_utils_cyclic_data_poll()</code></td><td>app_utils.c</td><td>遍历所有 plugged subslot</td></tr>
+<tr><td>4</td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ <code>app_cyclic_data_callback()</code></td><td>sampleapp_common.c</td><td>每个 subslot 一次</td></tr>
+<tr><td>5</td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ <code>pnet_output_get_data_and_iops()</code></td><td>pnet_api.c</td><td>p-net API：拉取 PLC 数据</td></tr>
+<tr><td>5</td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ <code>app_data_set_output_data()</code></td><td>app_data.c</td><td>TCP send → robot</td></tr>
+<tr><td>5</td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ <code>app_data_get_input_data()</code></td><td>app_data.c</td><td>读取缓存状态</td></tr>
+<tr><td>5</td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ <code>pnet_input_set_data_and_iops()</code></td><td>pnet_api.c</td><td>p-net API：推入 PLC 数据</td></tr>
+<tr><td>2</td><td>&nbsp;&nbsp;→ <code>pnet_handle_periodic()</code></td><td>pnet_api.c</td><td>每 1ms</td></tr>
+<tr><td>3</td><td>&nbsp;&nbsp;&nbsp;&nbsp;→ <code>pf_scheduler_tick()</code></td><td>pf_scheduler.c</td><td>触发到期定时器（CPM/PPM/CMIO）</td></tr>
+</table>
+</div>
+
+<div class="card" style="margin-top:16px">
+<h4>robot_ros2 侧函数调用链（参考）</h4>
+<table>
+<tr><th>深度</th><th>函数</th><th>文件</th><th>频率</th></tr>
+<tr><td>0</td><td><code>100Hz 定时器回调</code></td><td>robot_ros2.cpp</td><td>100Hz</td></tr>
+<tr><td>1</td><td>→ <code>buildRobotToPLCFrame()</code></td><td>robot_ros2.cpp</td><td>组装 80 字节状态帧</td></tr>
+<tr><td>2</td><td>&nbsp;&nbsp;→ <code>updateRobotStatus()</code></td><td>robot_ros2.cpp</td><td>读取各传感器 / 关节状态 → 填充 PLCFrame</td></tr>
+<tr><td>—</td><td><code>PLCCommunicator::recv()</code></td><td>plc_communicator.cpp</td><td>收到 PLC Frame → 回复当前状态帧</td></tr>
+<tr><td>—</td><td>→ <code>handlePLCData()</code></td><td>robot_ros2.cpp</td><td>解析 BOOL/INT/REAL → 执行上电/急停/视觉偏移</td></tr>
+<tr><td>0</td><td><code>jointStateCallback()</code></td><td>robot_ros2.cpp</td><td>1kHz（EtherCAT PDO）</td></tr>
+<tr><td>1</td><td>→ <code>notifyPlcActionDone()</code></td><td>robot_ros2.cpp</td><td>检测 is_active 下降沿 → 设置 done_expire</td></tr>
+</table>
+</div>
+
+<!-- ===== 4.3 文件职责与依赖 ===== -->
+<h3>4.3 文件职责与依赖</h3>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>pn_dev 源文件（本项目）</h4>
+    <table>
+    <tr><th>文件</th><th>职责</th></tr>
+    <tr><td><code>sampleapp_main.c</code></td><td>Linux 入口：CLI 解析、调用 init/start</td></tr>
+    <tr><td><code>sampleapp_common.c</code></td><td>核心：事件循环、14 个 p-net 回调、DAP 插拔</td></tr>
+    <tr><td><code>app_data.c</code></td><td>数据 I/O 实现：TCP 桥接、串口调试、参数存储</td></tr>
+    <tr><td><code>app_gsdml.c</code></td><td>GSDML 目录：6 个模块、12 个子模块的静态定义</td></tr>
+    <tr><td><code>app_utils.c</code></td><td>工具：AR 管理、slot/subslot 插拔、配置初始化</td></tr>
+    <tr><td><code>app_log.c</code></td><td>日志：5 级过滤、运行时可调</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h4>p-net 协议栈（预编译 SDK）</h4>
+    <table>
+    <tr><th>文件</th><th>职责</th></tr>
+    <tr><td><code>pnet_api.c</code></td><td>公共 API：所有 <code>pnet_*()</code> 函数入口</td></tr>
+    <tr><td><code>pf_cpm.c</code></td><td>Consumer：PLC→设备数据接收管理</td></tr>
+    <tr><td><code>pf_ppm.c</code></td><td>Provider：设备→PLC 数据发送管理</td></tr>
+    <tr><td><code>pf_cpm_driver_sw.c</code></td><td>CPM 软件驱动：双缓冲 + 互斥锁</td></tr>
+    <tr><td><code>pf_ppm_driver_sw.c</code></td><td>PPM 软件驱动：定时发送 + 帧组装</td></tr>
+    <tr><td><code>pf_scheduler.c</code></td><td>调度器：基于绝对时间的优先级队列</td></tr>
+    <tr><td><code>pf_eth.c</code></td><td>以太网：FrameID 路由、LLDP/IP 分发</td></tr>
+    <tr><td><code>pf_cmdev.c</code></td><td>连接管理：CONNECT/RELEASE/ABORT</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+<h4>文件依赖图</h4>
+<pre style="color:var(--muted);font-size:0.78em;line-height:1.5;background:rgba(0,0,0,0.2);padding:16px;border-radius:8px;overflow-x:auto">
+sampleapp_main.c  (ports/linux/)
+  |
+  |-- include --&gt; sampleapp_common.h, app_gsdml.h, app_data.h
+  |-- 调用 ----&gt; app_data_init()
+  |-- 调用 ----&gt; app_plc_bridge_start()
+  |-- 调用 ----&gt; app_init(), app_start()
+  |
+  v
+sampleapp_common.c  (核心)
+  |
+  |-- include --&gt; app_gsdml.h, app_data.h, app_utils.h, app_log.h
+  |-- 调用 ----&gt; app_utils_cyclic_data_poll()
+  |-- 调用 ----&gt; app_data_set_output_data()
+  |-- 调用 ----&gt; app_data_get_input_data()
+  |-- 调用 ----&gt; pnet_output_get_data_and_iops()
+  |-- 调用 ----&gt; pnet_input_set_data_and_iops()
+  |-- 调用 ----&gt; pnet_handle_periodic()
+  |
+  v
++-------------------+-------------------+-------------------+
+|   app_data.c      |   app_utils.c     |   app_gsdml.c     |
+|   TCP 桥接/PLC帧  |   AR/Slot 管理    |   模块/子模块目录  |
+|   串口调试/参数    |   配置初始化      |   查找函数         |
++-------------------+-------------------+-------------------+
+  |                       |                       |
+  +-------+-------+-------+                       |
+          |                                       |
+          v                                       v
+     app_log.c                            (所有文件都 include)
+     (独立,无项目依赖)                     sampleapp_common.h
+                                                  |
+                                                  v
+                                          p-net SDK
+                                          libpnet.a (预编译)
+                                          pnet_api.c  pf_cpm.c
+                                          pf_ppm.c  pf_eth.c
+                                          pf_scheduler.c  pf_cmdev.c
+</pre>
+</div>
+
+<!-- ===== 4.4 线程模型 ===== -->
+<h3>4.4 线程模型</h3>
+
+<table>
+<tr><th>线程</th><th>执行函数</th><th>触发方式</th><th>频率</th><th>关键数据</th></tr>
+<tr>
+  <td style="color:var(--blue);font-weight:700">主事件线程</td>
+  <td><code>app_loop_forever()</code></td>
+  <td>os_event_wait 阻塞等待</td>
+  <td>事件驱动（定时器 1ms）</td>
+  <td>app_data_t、subslot 列表</td>
+</tr>
+<tr>
+  <td style="color:var(--blue);font-weight:700">主事件线程</td>
+  <td><code>app_cyclic_data_callback()</code></td>
+  <td>app_utils_cyclic_data_poll 遍历</td>
+  <td>每 100ms</td>
+  <td>subslot->outdata、insize</td>
+</tr>
+<tr>
+  <td style="color:var(--blue);font-weight:700">主事件线程</td>
+  <td><code>app_data_set_output_data()</code></td>
+  <td>cyclic callback 调用</td>
+  <td>每 100ms</td>
+  <td><code>plc_sock_fd</code>（读）</td>
+</tr>
+<tr>
+  <td style="color:var(--purple);font-weight:700">ETH RX 线程</td>
+  <td><code>pf_eth_recv()</code></td>
+  <td>网卡中断 / poll</td>
+  <td>每帧到达</td>
+  <td>CPM 双缓冲（写）</td>
+</tr>
+<tr>
+  <td style="color:var(--orange);font-weight:700">TCP Bridge 线程</td>
+  <td><code>plc_tcp_thread_fn()</code></td>
+  <td>pthread_create 启动</td>
+  <td>后台循环</td>
+  <td><code>plc_sock_fd</code>（写）</td>
+</tr>
+<tr>
+  <td style="color:var(--green);font-weight:700">后台工作线程</td>
+  <td><code>pf_bg_worker()</code></td>
+  <td>p-net 内部创建</td>
+  <td>低频</td>
+  <td>NVM 保存、端口状态</td>
+</tr>
+</table>
+
+<div class="card" style="margin-top:16px">
+<h4>并发注意事项</h4>
+<ul style="margin-left:16px;line-height:2">
+  <li><code>plc_sock_fd</code> 被主线程（读/写/关闭）和 TCP Bridge 线程（写/关闭）共享，<strong>无互斥锁保护</strong>——存在竞态窗口</li>
+  <li><code>latest_robot_status</code> 由主线程（写）和主线程自身（读）使用，<strong>有 status_mutex 保护</strong></li>
+  <li>CPM 双缓冲由 ETH RX 线程（写 <code>p_buffer_cpm</code>）和主线程（读 <code>p_buffer_app</code>）共享，<strong>有 cpm_buf_lock 保护</strong></li>
+  <li>PPM 单缓冲仅主线程访问（写 buffer_data + 发送），无并发问题</li>
+  <li><code>app_data_set_output_data()</code> 中的同步 <code>recv(MSG_WAITALL)</code> 会<strong>阻塞整个主事件线程</strong>直至收到运动控制器响应——若机器人侧处理慢，会影响 PROFINET 周期</li>
+</ul>
+</div>
+</section>
+
+<!-- ==================== TAB 6: 算法与公式 ==================== -->
+<section id="algorithms">
+<h2>关键算法与公式</h2>
+
+<div class="algo">
+  <div class="algo-head open" onclick="this.classList.toggle('open')">
+    <span>1. 关节运动检测 — BOOL[7] Moving / BOOL[15] Action Busy</span>
+    <span style="font-size:0.85em;color:var(--muted)">折叠</span>
+  </div>
+  <div class="algo-body">
+
+    <h4>数学符号</h4>
+    <table>
+    <tr><th>符号</th><th>含义</th><th>数据来源</th></tr>
+    <tr><td>$$\dot{q}_i$$</td><td>第 i 个关节的角速度（rad/s）</td><td><code>/joint_states</code> topic，EtherCAT PDO 周期 1kHz</td></tr>
+    <tr><td>$$i = 0 \ldots 5$$</td><td>六轴机械臂 J1 ~ J6</td><td><code>qd_actual[6]</code> 数组</td></tr>
+    <tr><td>$$0.005$$</td><td>速度判定阈值（rad/s）</td><td>经验值，用于滤除编码器微小噪声</td></tr>
+    <tr><td>$$\text{is\_moving}$$</td><td>是否正在运动的布尔结果</td><td>写入 <code>BOOL[7]</code> 和 <code>BOOL[15]</code></td></tr>
+    </table>
+
+    <h4>公式与含义</h4>
+    <div class="algo-formula">$$ \text{is\_moving} = \sum_{i=0}^{5} |\dot{q}_i| \gt 0.005 $$</div>
+    <p>六个关节的角速度各自取绝对值后相加，若总和超过 0.005 rad/s 则判定为<strong>正在运动</strong>。任一关节有微动即触发，避免编码器噪声导致误判。</p>
+
+    <h4>代码实现</h4>
+    <p><span class="algo-fn">buildRobotToPLCFrame()</span> robot_ros2.cpp:5116</p>
+    <p>在 100Hz 定时器回调中执行：读取 <code>qd_actual[0..5]</code> 六轴速度 → 逐轴 <code>fabs()</code> 累加 → 与 0.005 比较 → 结果同时写入 <code>BOOL[7]</code>（Moving）和 <code>BOOL[15]</code>（Action Busy）。两个信号在 PLC 侧可分别用于状态监控和动作握手。</p>
+
+    <h4>计算过程</h4>
+    <table>
+    <tr><th>步骤</th><th>操作</th><th>示例值</th><th>说明</th></tr>
+    <tr><td>① 读取</td><td>从 /joint_states 取 <code>qd_actual[0..5]</code></td><td>[0.12, -0.08, 0.0, 0.0, 0.0, 0.15]</td><td>6 轴角速度 (rad/s)，EtherCAT PDO 提供</td></tr>
+    <tr><td>② 取绝对值</td><td><code>fabs(qd_actual[i])</code></td><td>[0.12, 0.08, 0.0, 0.0, 0.0, 0.15]</td><td>负号仅表示方向，运动判断只看幅度</td></tr>
+    <tr><td>③ 累加</td><td><code>sum = fabs(q0)+fabs(q1)+...+fabs(q5)</code></td><td>0.12+0.08+0+0+0+0.15 = <strong>0.35</strong></td><td>任一轴有微动都会贡献到总和</td></tr>
+    <tr><td>④ 比较</td><td><code>sum > 0.005 ?</code></td><td>0.35 > 0.005 → <strong>TRUE</strong></td><td>阈值 0.005 rad/s ≈ 0.3 deg/s，滤除编码器噪声</td></tr>
+    <tr><td>⑤ 写入</td><td>设置 PLCFrame 对应 bit</td><td>BOOL[7]=1, BOOL[15]=1</td><td>PLC 读到 %IB0.7=1 和 %IB1.7=1</td></tr>
+    </table>
+
+  </div>
+</div>
+
+<div class="algo">
+  <div class="algo-head" onclick="this.classList.toggle('open')">
+    <span>2. 轨迹完成检测 — BOOL[16] Action Done</span>
+    <span style="font-size:0.85em;color:var(--muted)">展开</span>
+  </div>
+  <div class="algo-body">
+
+    <h4>数学符号</h4>
+    <table>
+    <tr><th>符号</th><th>含义</th><th>数据来源</th></tr>
+    <tr><td>$$t_{\text{now}}$$</td><td>当前时间戳</td><td>系统时钟 <code>std::chrono::steady_clock</code></td></tr>
+    <tr><td>$$t_{\text{done}}$$</td><td>轨迹完成时刻 + 300ms</td><td><code>done_expire</code> 变量，完成瞬间设定</td></tr>
+    <tr><td>$$\text{BOOL[16]}$$</td><td>Action Done 信号</td><td>PLC 侧 <code>%IB2.0</code>，上升沿锁存</td></tr>
+    </table>
+
+    <h4>公式与含义</h4>
+    <div class="algo-formula">$$ \text{BOOL[16]} = \begin{cases} 1 & t_{\text{now}} \lt t_{\text{done}} \\ 0 & \text{otherwise} \end{cases} $$</div>
+    <p>运动轨迹执行完毕后，将 Done 信号<strong>保持 300ms 高电平</strong>，然后自动清零。300ms 窗口足够 PLC 扫描周期捕获上升沿并锁存，同时避免了电平持续为高导致无法区分"上一次完成"和"新一次完成"。</p>
+
+    <h4>代码实现</h4>
+    <p><span class="algo-fn">notifyPlcActionDone()</span> robot_ros2.cpp（done_expire 赋值）</p>
+    <p><span class="algo-fn">buildRobotToPLCFrame()</span> robot_ros2.cpp（BOOL[16] 赋值）</p>
+    <p><code>jointStateCallback</code>（1kHz）中检测 <code>trajectory_cache_.is_active</code> 下降沿（true→false），调用 <code>notifyPlcActionDone()</code> 设置 <code>done_expire = now + 300ms</code>。在 100Hz 定时器中，<code>buildRobotToPLCFrame()</code> 比较当前时间与 <code>done_expire</code>，决定 <code>BOOL[16]</code> 的值。</p>
+
+    <h4>计算过程</h4>
+    <table>
+    <tr><th>步骤</th><th>时序</th><th>is_active</th><th>done_expire</th><th>BOOL[16]</th><th>说明</th></tr>
+    <tr><td>① 轨迹执行中</td><td>T=1000ms</td><td>TRUE</td><td>0（未设置）</td><td>0</td><td>正常执行，Done=0</td></tr>
+    <tr><td>② 轨迹结束瞬间</td><td>T=2500ms</td><td>TRUE→<strong>FALSE</strong></td><td>→ <strong>2800ms</strong></td><td>→ 1</td><td>jointStateCallback 检测下降沿，设 done_expire = now+300ms</td></tr>
+    <tr><td>③ Done 脉冲保持</td><td>T=2550ms</td><td>FALSE</td><td>2800ms</td><td>1</td><td>2550 < 2800，仍在 300ms 窗口内</td></tr>
+    <tr><td>④ Done 脉冲结束</td><td>T=2810ms</td><td>FALSE</td><td>2800ms</td><td><strong>0</strong></td><td>2810 > 2800，窗口关闭，自动清零</td></tr>
+    </table>
+    <p style="margin-top:8px;color:var(--muted)">PLC 侧应在步骤②~③期间捕获 BOOL[16] 的上升沿并锁存。即使 PLC 扫描周期为 10ms，300ms 窗口足够扫描 30 次。</p>
+
+  </div>
+</div>
+
+<div class="algo">
+  <div class="algo-head" onclick="this.classList.toggle('open')">
+    <span>3. 上升沿检测 — 上电 / 急停去抖</span>
+    <span style="font-size:0.85em;color:var(--muted)">展开</span>
+  </div>
+  <div class="algo-body">
+
+    <h4>数学符号</h4>
+    <table>
+    <tr><th>符号</th><th>含义</th><th>数据来源</th></tr>
+    <tr><td>$$\text{bit}_{\text{cur}}$$</td><td>当前 PROFINET 周期的信号位值（0 或 1）</td><td>本周期 PLC 发来的 PLCFrame 对应 bit</td></tr>
+    <tr><td>$$\text{bit}_{\text{prev}}$$</td><td>上一周期的信号位值（0 或 1）</td><td>上一帧缓存的 PLCFrame 对应 bit</td></tr>
+    <tr><td>$$\land$$</td><td>逻辑与</td><td>—</td></tr>
+    <tr><td>$$\neg$$</td><td>逻辑非</td><td>—</td></tr>
+    <tr><td>$$\text{trigger}$$</td><td>边沿触发输出</td><td>TRUE 时执行对应动作（上电/急停）</td></tr>
+    </table>
+
+    <h4>公式与含义</h4>
+    <div class="algo-formula">$$ \text{trigger} = \text{bit}_{\text{cur}} \land \neg \text{bit}_{\text{prev}} $$</div>
+    <p><strong>仅当信号从 0 变为 1 的瞬间</strong>才触发动作。前一帧为 0 且当前帧为 1 时 trigger=TRUE，其他三种情况（0→0、1→0、1→1）均为 FALSE。这确保了：按住不放不会重复触发、松开后再按才会再次触发。</p>
+
+    <h4>代码实现</h4>
+    <p><span class="algo-fn">handlePLCData()</span> robot_ros2.cpp:5198</p>
+    <p>每收到一帧 PLC 数据时：用 <code>bool_data[0].bit0</code> 当前值与 <code>prev_bool_data[0].bit0</code> 比较检测 BOOL[0] 上升沿 → 触发 <code>gpio_safety_start()</code>；用 bit4 同理检测 BOOL[4] 上升沿 → 触发 <code>triggerStop()</code>。处理完后将当前帧拷贝到 <code>prev_*</code> 供下一帧比较。</p>
+
+    <h4>计算过程</h4>
+    <table>
+    <tr><th>周期</th><th>bit_cur</th><th>bit_prev</th><th>bit_cur ∧ ¬bit_prev</th><th>trigger</th><th>含义</th></tr>
+    <tr><td>N-1（初始）</td><td>0</td><td>0</td><td>0 ∧ ¬0 = 0 ∧ 1 = 0</td><td>FALSE</td><td>还没按</td></tr>
+    <tr><td>N（按下瞬间）</td><td><strong>1</strong></td><td>0</td><td>1 ∧ ¬0 = 1 ∧ 1 = <strong>1</strong></td><td><strong>TRUE</strong> ✅</td><td>触发！gpio_safety_start()</td></tr>
+    <tr><td>N+1（按住不放）</td><td>1</td><td>1</td><td>1 ∧ ¬1 = 1 ∧ 0 = 0</td><td>FALSE</td><td>持续按住，不再触发</td></tr>
+    <tr><td>N+2（松开）</td><td>0</td><td>1</td><td>0 ∧ ¬1 = 0 ∧ 0 = 0</td><td>FALSE</td><td>下降沿，不触发</td></tr>
+    <tr><td>N+3（再次按下）</td><td><strong>1</strong></td><td>0</td><td>1 ∧ ¬0 = <strong>1</strong></td><td><strong>TRUE</strong> ✅</td><td>再次触发！</td></tr>
+    </table>
+    <p style="margin-top:8px;color:var(--muted)">四种输入组合中只有 0→1 输出 TRUE。这就是"上升沿"的数学本质——布尔逻辑的边沿检测器。</p>
+
+  </div>
+</div>
+
+<div class="algo">
+  <div class="algo-head" onclick="this.classList.toggle('open')">
+    <span>4. IOPS 健康判定 — PROFINET 数据有效性</span>
+    <span style="font-size:0.85em;color:var(--muted)">展开</span>
+  </div>
+  <div class="algo-body">
+
+    <h4>数学符号</h4>
+    <table>
+    <tr><th>符号</th><th>含义</th><th>数据来源</th></tr>
+    <tr><td>$$\text{plc\_sock\_fd}$$</td><td>到运动控制器的 TCP socket 文件描述符</td><td><code>socket() + connect()</code> 返回值，-1 表示未连接</td></tr>
+    <tr><td>$$\text{IOPS}$$</td><td>PROFINET IO Provider Status</td><td>随每帧输入数据上报给 PLC</td></tr>
+    <tr><td>$$\text{GOOD}$$</td><td>数据有效（<code>PNET_IOXS_GOOD</code>）</td><td>TCP 已连接，运动控制器在线</td></tr>
+    <tr><td>$$\text{BAD}$$</td><td>数据无效（<code>PNET_IOXS_BAD</code>）</td><td>TCP 断开，运动控制器离线或未启动</td></tr>
+    </table>
+
+    <h4>公式与含义</h4>
+    <div class="algo-formula">$$ \text{IOPS} = \begin{cases} \text{GOOD} & \text{plc\_sock\_fd} \gt 0 \\ \text{BAD} & \text{otherwise} \end{cases} $$</div>
+    <p>用 TCP socket 文件描述符的有效性作为运动控制器是否在线的<strong>代理指标</strong>。TCP 连接存活 = 运动控制器在运行，无需额外心跳协议。PLC 侧通过 IOPS 状态字就能实时感知机器人侧是否在线。</p>
+
+    <h4>代码实现</h4>
+    <p><span class="algo-fn">app_data_get_input_data()</span> app_data.c（pn_dev 侧）</p>
+    <p>每次 p-net 栈准备发送周期输入帧时调用此函数。检查全局变量 <code>plc_sock_fd</code>（由后台 TCP 线程维护）：fd > 0 则设置 <code>*iops = PNET_IOXS_GOOD</code> 并返回最新缓存的状态帧；fd = -1 则设置 <code>*iops = PNET_IOXS_BAD</code>，PLC 侧将看到数据无效告警。</p>
+
+    <h4>计算过程</h4>
+    <table>
+    <tr><th>场景</th><th>plc_sock_fd</th><th>判断</th><th>IOPS</th><th>PLC 看到的效果</th></tr>
+    <tr><td>运动控制器在线</td><td>5（有效的 fd）</td><td>5 > 0 → TRUE</td><td>GOOD</td><td>数据正常，机器人状态可信</td></tr>
+    <tr><td>运动控制器未启动</td><td>-1</td><td>-1 > 0 → FALSE</td><td>BAD</td><td>数据无效告警，PLC 应进入安全状态</td></tr>
+    <tr><td>TCP 连接断开</td><td>→ -1（被主线程关闭）</td><td>-1 > 0 → FALSE</td><td>BAD</td><td>同上报错，后台线程开始重连</td></tr>
+    <tr><td>TCP 重连成功</td><td>→ 6（新 fd）</td><td>6 > 0 → TRUE</td><td>GOOD</td><td>恢复，告警解除</td></tr>
+    </table>
+    <p style="margin-top:8px;color:var(--muted)">这是一个极简的健康代理：不需要额外的 TCP 心跳包，利用 fd 有效性直接判断对端是否在线。值判断仅一步整数比较（> 0），零计算开销。</p>
+
+  </div>
+</div>
+</section>
+
+<!-- ==================== TAB 7: 修改状态 ==================== -->
+<section id="status">
+<h2>当前修改状态</h2>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>pn_dev 侧 <span class="badge badge-done">7/7 完成</span></h4>
+    <table style="margin-top:8px">
+      <tr><td>app_gsdml.h</td><td>+6行 新增常量</td></tr>
+      <tr><td>app_gsdml.c</td><td>+32行 注册模块</td></tr>
+      <tr><td>app_data.c</td><td>+140行 TCP桥接</td></tr>
+      <tr><td>app_data.h</td><td>+11行 声明</td></tr>
+      <tr><td>sampleapp_main.c</td><td>+1行 启动调用</td></tr>
+      <tr><td>GSDML XML</td><td>+38行 模块定义</td></tr>
+    </table>
+    <p style="margin-top:8px">编译状态: <span class="badge badge-done">通过</span></p>
+  </div>
+  <div class="card">
+    <h4>robot_ros2 侧 <span class="badge badge-done">2/2 完成</span></h4>
+    <table style="margin-top:8px">
+      <tr><td>updateRealtimeDataFromTimer()</td><td>+6行 刷新PLC状态帧</td></tr>
+      <tr><td>jointStateCallback()</td><td>+1行 通知轨迹完成</td></tr>
+    </table>
+    <p style="margin-top:8px">编译状态: <span class="badge badge-info">待验证</span></p>
+  </div>
+  <div class="card">
+    <h4>PLC 侧 <span class="badge badge-todo">待执行</span></h4>
+    <table style="margin-top:8px">
+      <tr><td>导入 GSDML</td><td>含 IDM_50 模块</td></tr>
+      <tr><td>配置 Slot 1</td><td>PLC Frame 模块</td></tr>
+      <tr><td>PLC 程序</td><td>%Q/%I 替代 TCP</td></tr>
+    </table>
+  </div>
+</div>
+
+<h3 style="margin-top:32px">文档清单</h3>
+<table>
+<tr><th>文档</th><th>受众</th><th>说明</th></tr>
+<tr><td>PLC接口对接文档.md</td><td>PLC 程序员</td><td>IO地址映射、信号定义、操作流程</td></tr>
+<tr><td>修改计划.md</td><td>pn_dev 开发者</td><td>7项修改的原因和具体改法</td></tr>
+<tr><td>机器人控制器修改计划.md</td><td>robot_ros2 开发者</td><td>2处修改的原因和具体改法</td></tr>
+<tr><td>系统架构文档.html</td><td>所有人</td><td>本文档 — 交互式架构总览</td></tr>
+<tr><td>PLC接口对接文档.html</td><td>PLC 程序员</td><td>交互式信号映射 + 结构图</td></tr>
+<tr><td>mermaid/*.md</td><td>所有人</td><td>Obsidian 可渲染的架构图</td></tr>
+</table>
+</section>
+
+
+<!-- ==================== TAB 6: 关键函数 ==================== -->
+<section id="functions">
+<h2>关键函数解析</h2>
+
+<p style="color:var(--muted);margin-bottom:20px">
+按选取标准（多文件调用 / 模块入口出口 / 关键状态变更 / 错误高发点）纳入 7 个核心函数。
+点击索引标签快速跳转。
+</p>
+
+<h3>函数索引</h3>
+<div class="fn-index">
+  <div class="fn-index-group">
+    <span class="fn-index-label">启动</span>
+    <a href="#fn-app_plc_bridge_start" class="fn-tag">app_plc_bridge_start()</a>
+    <a href="#fn-app_loop_forever" class="fn-tag">app_loop_forever()</a>
+  </div>
+  <div class="fn-index-group">
+    <span class="fn-index-label">周期数据</span>
+    <a href="#fn-app_handle_cyclic_data" class="fn-tag">app_handle_cyclic_data()</a>
+    <a href="#fn-app_cyclic_data_callback" class="fn-tag">app_cyclic_data_callback()</a>
+  </div>
+  <div class="fn-index-group">
+    <span class="fn-index-label">TCP 桥接</span>
+    <a href="#fn-app_data_set_output_data" class="fn-tag">app_data_set_output_data()</a>
+    <a href="#fn-app_data_get_input_data" class="fn-tag">app_data_get_input_data()</a>
+    <a href="#fn-plc_tcp_thread_fn" class="fn-tag">plc_tcp_thread_fn()</a>
+  </div>
+</div>
+
+<!-- ===== fn: app_plc_bridge_start ===== -->
+<div class="fn-card" id="fn-app_plc_bridge_start">
+  <div class="fn-card-head">
+    <span class="fn-name">app_plc_bridge_start()</span>
+    <span class="fn-file">app_data.c : 174</span>
+    <span class="badge badge-done">入口</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">创建 TCP 桥接线程，连接运动控制器的 PLCCommunicator 端口 31000。连接成功后，主线程通过 <code>plc_sock_fd</code> 全局变量收发数据。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p>工业设备上电自检后的<strong>通信链路建立</strong>。类似于 PLC 上电后尝试连接远程 IO 子站——设备主动发起 TCP 连接，而不是等待连接。1 秒重试间隔是嵌入式领域的常见做法，避免 CPU 空转的同时保证恢复速度。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像打电话——你主动拨号（connect），对方不接就等一会再拨（sleep 1s 重试）。拨通之后你不是一直说话，而是把话筒放在旁边（公布 fd），等别人要用时直接拿起来讲（主线程 send/recv）。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">int app_plc_bridge_start(void);</pre>
+    <table>
+    <tr><th>参数/返回</th><th>类型</th><th>含义</th><th>说明</th></tr>
+    <tr><td><strong>返回值</strong></td><td><code>int</code></td><td>0=成功，-1=失败</td><td>pthread_create 返回值</td></tr>
+    </table>
+
+    <h4>调用时机</h4>
+    <table>
+    <tr><th>阶段</th><th>调用者</th><th>调用条件</th><th>频率</th></tr>
+    <tr><td>启动</td><td><code>main()</code> (sampleapp_main.c)</td><td>进程启动，p-net 栈初始化之前</td><td>一次</td></tr>
+    </table>
+
+    <h4>数据流</h4>
+    <div class="mermaid" style="margin:14px 0">
+flowchart LR
+    CONST["编译期常量<br/>127.0.0.1:31000"] --> FN["app_plc_bridge_start()"]
+    FN --> TID["plc_thread_id<br/>全局变量"]
+    FN --> RUN["plc_thread_running = true"]
+    FN --> THREAD["plc_tcp_thread_fn()<br/>后台线程启动"]
+    style FN fill:#448aff,color:#fff
+    </div>
+
+    <h4>关键步骤</h4>
+    <ol class="fn-steps">
+      <li><span class="fn-step-tag">创建</span> <code>pthread_create(&plc_thread_id, NULL, plc_tcp_thread_fn, NULL)</code></li>
+      <li><span class="fn-step-tag">返回</span> 0 成功，-1 失败</li>
+    </ol>
+
+    <h4>依赖关系</h4>
+    <div class="col2">
+      <div><strong>之后才能调用</strong>
+        <ul class="fn-dep-list">
+          <li><code>plc_tcp_thread_fn()</code> — 由本函数创建的线程执行</li>
+          <li><code>app_data_set_output_data()</code> — 依赖 plc_sock_fd 有效才能 send/recv</li>
+        </ul>
+      </div>
+    </div>
+
+    <h4>常见错误与陷阱</h4>
+    <table>
+    <tr><th>错误现象</th><th>根因</th><th>正确做法</th></tr>
+    <tr><td>TCP 连接迟迟不建立</td><td>运动控制器未启动或端口 31000 未监听</td><td>先启动运动控制器，再启动 pn_dev；TCP 线程自带 1 秒重试</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===== fn: app_loop_forever ===== -->
+<div class="fn-card" id="fn-app_loop_forever">
+  <div class="fn-card-head">
+    <span class="fn-name">app_loop_forever()</span>
+    <span class="fn-file">sampleapp_common.c : 1717</span>
+    <span class="badge badge-done">核心</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">p-net 应用的主事件循环。plug DAP → 进入 os_event_wait 阻塞等待 → 分发定时器/告警/连接/中止事件。所有 p-net 协议栈回调在此线程中触发。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p>实时嵌入式系统的<strong>主循环模式</strong>（Main Loop Pattern）。所有实时控制系统都有一个永不退出的主循环：阻塞等待事件 → 处理 → 回到阻塞。类似 PLC 的 OB1 循环扫描、FreeRTOS 的 vTaskStartScheduler。5 个事件位的优先级分发类似于中断优先级——TIMER 和 READY_FOR_DATA 是高频事件，ALARM/ABORT 是低频但紧急的。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像餐厅服务员——站在大堂等待（阻塞 os_event_wait）→ 有客人举手（TIMER 事件）→ 走过去点菜（处理数据），有客人喊结账（ALARM 事件）→ 优先处理。处理完回到原位继续等。永远不会自己下班（永不退出的循环）。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">void app_loop_forever(void * arg);</pre>
+    <table>
+    <tr><th>参数/返回</th><th>类型</th><th>含义</th><th>说明</th></tr>
+    <tr><td><code>arg</code></td><td><code>void *</code></td><td>指向 app_data_t</td><td>由 app_start() 传入</td></tr>
+    </table>
+
+    <h4>调用时机</h4>
+    <table>
+    <tr><th>阶段</th><th>调用者</th><th>调用条件</th><th>频率</th></tr>
+    <tr><td>启动→永久</td><td><code>app_start()</code> (sampleapp_common.c)</td><td>可能在新线程中运行</td><td>一次，内部永久循环</td></tr>
+    </table>
+
+    <h4>数据流</h4>
+    <div class="mermaid" style="margin:14px 0">
+flowchart TB
+    TICK["1ms 定时器 ISR"] -->|"APP_EVENT_TIMER"| WAIT["os_event_wait()<br/>阻塞等待事件"]
+    ISR["p-net 栈回调"] -->|"APP_EVENT_READY_FOR_DATA"| WAIT
+    WAIT --> TIMER["app_handle_event_timer()"]
+    WAIT --> AR["app_handle_event_ar()"]
+    TIMER --> CYCLIC["app_handle_cyclic_data()<br/>每100ms触发数据收发"]
+    TIMER --> PERIODIC["pnet_handle_periodic()<br/>调度器 tick"]
+    CYCLIC --> IO["PROFINET IO 数据流"]
+    style WAIT fill:#448aff,color:#fff
+    </div>
+
+    <h4>关键步骤</h4>
+    <ol class="fn-steps">
+      <li><span class="fn-step-tag">plug</span> 调用 <code>app_plug_dap()</code> 将所有 DAP 子模块注册到 p-net 栈</li>
+      <li><span class="fn-step-tag">等待</span> <code>os_event_wait(main_events, 5个事件掩码, 超时)</code> 阻塞</li>
+      <li><span class="fn-step-tag">分发</span> 按位检查事件：APP_EVENT_TIMER → app_handle_event_timer；APP_EVENT_READY_FOR_DATA → pnet_application_ready；APP_EVENT_ALARM → 告警处理；APP_EVENT_SM_RELEASED → 初始化数据+IOXS；APP_EVENT_ABORT → 移除 AR</li>
+    </ol>
+
+    <h4>依赖关系</h4>
+    <div class="col2">
+      <div><strong>必须先调用</strong>
+        <ul class="fn-dep-list">
+          <li><code>app_init()</code> — 初始化 p-net 栈和事件系统</li>
+          <li><code>app_plc_bridge_start()</code> — 确保 TCP 连接先于数据到达</li>
+        </ul>
+      </div>
+      <div><strong>之后才能调用</strong>
+        <ul class="fn-dep-list">
+          <li><code>app_handle_event_timer()</code> — 每次 TIMER 事件触发</li>
+          <li><code>app_cyclic_data_callback()</code> — 通过 app_handle_cyclic_data 间接调用</li>
+        </ul>
+      </div>
+    </div>
+
+    <h4>常见错误与陷阱</h4>
+    <table>
+    <tr><th>错误现象</th><th>根因</th><th>正确做法</th></tr>
+    <tr><td>CPU 100%</td><td>os_event_wait 超时设为 0 或无超时事件丢失</td><td>确保至少一个事件源（定时器）定期触发</td></tr>
+    <tr><td>周期数据不更新</td><td>APP_EVENT_TIMER 未设置或 app_handle_cyclic_data 因为未连接而跳过</td><td>检查 PLC 是否已建立 AR</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===== fn: app_handle_cyclic_data ===== -->
+<div class="fn-card" id="fn-app_handle_cyclic_data">
+  <div class="fn-card-head">
+    <span class="fn-name">app_handle_cyclic_data()</span>
+    <span class="fn-file">sampleapp_common.c : 1209</span>
+    <span class="badge badge-info">调度</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">每 1ms tick 调用一次，内部计数器累加到 100 后才真正触发 <code>app_utils_cyclic_data_poll()</code>。实现 100ms 周期的数据轮询。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p><strong>分频器</strong>（Prescaler），在硬件定时器领域极其常见。1ms tick 太快不适合做复杂 IO 处理，通过计数器分频到 100ms 得到合理的应用层处理周期。类似于 STM32 定时器的 PSC（预分频器）——硬件以高频计数，软件以低频响应。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像汽车保养提醒——发动机每转一圈（1ms tick）计数器加 1，转到第 100 圈仪表盘才亮一下保养灯（执行 poll）。如果 100 圈才检查一次机油，日常 1 圈只做简单的事（计数器累加）。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">static void app_handle_cyclic_data(app_data_t * app);</pre>
+
+    <h4>调用时机</h4>
+    <table>
+    <tr><th>阶段</th><th>调用者</th><th>调用条件</th><th>频率</th></tr>
+    <tr><td>运行时</td><td><code>app_handle_event_timer()</code></td><td>已连接到控制器</td><td>每 1ms 调用，每 100 次执行一次有效逻辑</td></tr>
+    </table>
+
+    <h4>数据流</h4>
+    <div class="fn-flow">
+      <div class="fn-flow-col">
+        <div class="fn-flow-label">输入</div>
+        <div class="fn-flow-item">app->process_data_tick_counter<br><span class="fn-flow-src">来源：每次调用自增</span></div>
+      </div>
+      <div class="fn-flow-arrow">→</div>
+      <div class="fn-flow-col fn-flow-center">
+        <div class="fn-flow-label">处理</div>
+        <div class="fn-flow-item fn-flow-process">计数器 % 100 → 决定是否触发 poll</div>
+      </div>
+      <div class="fn-flow-arrow">→</div>
+      <div class="fn-flow-col">
+        <div class="fn-flow-label">输出/副作用</div>
+        <div class="fn-flow-item">app_utils_cyclic_data_poll() 调用<br><span class="fn-flow-src">影响：遍历所有 subslot 触发 app_cyclic_data_callback</span></div>
+      </div>
+    </div>
+
+    <h4>关键步骤</h4>
+    <ol class="fn-steps">
+      <li><span class="fn-step-tag">累加</span> <code>app->process_data_tick_counter++</code></li>
+      <li><span class="fn-step-tag">判断</span> 若 &lt; APP_TICKS_UPDATE_DATA (100) 则直接返回</li>
+      <li><span class="fn-step-tag">归零</span> 重置计数器为 0</li>
+      <li><span class="fn-step-tag">遍历</span> <code>app_utils_cyclic_data_poll(&app->main_api)</code></li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===== fn: app_cyclic_data_callback ===== -->
+<div class="fn-card" id="fn-app_cyclic_data_callback">
+  <div class="fn-card-head">
+    <span class="fn-name">app_cyclic_data_callback()</span>
+    <span class="fn-file">sampleapp_common.c : 991</span>
+    <span class="badge badge-done">核心</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">对每个 plugged subslot 的周期数据回调。OUTPUT 方向拉取 PLC 数据并转发给运动控制器；INPUT 方向从缓存读取机器人状态并推入 p-net 栈。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p>PROFINET 的<strong>IO 扫描周期</strong>，等同于 PLC 的"输入采样→程序执行→输出刷新"三阶段中的 I/O 刷新阶段。OUTPUT 先执行（先收 PLC 命令再动作），INPUT 后执行（用最新状态回复），这个顺序符合工业安全原则——先听指令再报告状态。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像快递驿站——先收件（OUTPUT：从 PLC 取包裹），再发件（INPUT：把机器人状态寄出去）。先收后发的顺序很重要——你不能把今天的包裹发走之后才收新的，那样发的是昨天的旧包裹。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">static void app_cyclic_data_callback(
+    app_subslot_t * subslot,   /* 当前 subslot 描述符 */
+    void * tag                 /* app_data_t 上下文 */
+);</pre>
+
+    <h4>调用时机</h4>
+    <table>
+    <tr><th>阶段</th><th>调用者</th><th>调用条件</th><th>频率</th></tr>
+    <tr><td>运行时</td><td><code>app_utils_cyclic_data_poll()</code></td><td>subslot 已 plugged 且 outsize/insize > 0</td><td>每 100ms，每个 subslot 一次</td></tr>
+    </table>
+
+    <h4>数据流</h4>
+    <div class="mermaid" style="margin:14px 0">
+flowchart TB
+    subgraph OUTPUT["OUTPUT 方向: PLC → Robot"]
+        GDO["pnet_output_get_data_and_iops()<br/>从 CPM 双缓冲拉取 80B"] --> ASDO["app_data_set_output_data()"]
+        ASDO --> SEND["TCP send → :31000"]
+        SEND --> RECV["TCP recv ← :31000"]
+        RECV --> CACHE["latest_robot_status<br/>缓存最新机器人状态"]
+    end
+    subgraph INPUT["INPUT 方向: Robot → PLC"]
+        GDI["app_data_get_input_data()<br/>读缓存 + 判定 IOPS"] --> PSI["pnet_input_set_data_and_iops()"]
+        PSI --> PPM["写入 PPM 单缓冲"]
+        PPM --> FRAME["PPM 定时器触发 → 以太网帧 → PLC"]
+    end
+    style ASDO fill:#ff9100,color:#fff
+    style GDI fill:#448aff,color:#fff
+    </div>
+
+    <h4>关键步骤</h4>
+    <ol class="fn-steps">
+      <li><span class="fn-step-tag">校验</span> tag 非空 → 跳过大於 DAP subslot</li>
+      <li><span class="fn-step-tag">拉取</span> OUTPUT 方向：<code>pnet_output_get_data_and_iops()</code> → 数据有效则调用 <code>app_data_set_output_data()</code>，无效则安全默认值</li>
+      <li><span class="fn-step-tag">推送</span> INPUT 方向：<code>app_data_get_input_data()</code> → <code>pnet_input_set_data_and_iops()</code> → 读回 IOCS</li>
+    </ol>
+
+    <h4>依赖关系</h4>
+    <div class="col2">
+      <div><strong>必须先调用</strong>
+        <ul class="fn-dep-list">
+          <li><code>app_plug_dap()</code> — subslot 必须先插拔才能被 poll 到</li>
+          <li><code>app_plc_bridge_start()</code> — plc_sock_fd 必须已创建</li>
+        </ul>
+      </div>
+      <div><strong>直接调用</strong>
+        <ul class="fn-dep-list">
+          <li><code>app_data_set_output_data()</code> — 每次有 output 的 subslot</li>
+          <li><code>app_data_get_input_data()</code> — 每次有 input 的 subslot</li>
+        </ul>
+      </div>
+    </div>
+
+    <h4>常见错误与陷阱</h4>
+    <table>
+    <tr><th>错误现象</th><th>根因</th><th>正确做法</th></tr>
+    <tr><td>INPUT 数据始终为零</td><td>运动控制器未连接，plc_sock_fd=-1，IOPS=BAD 但数据仍返回空缓存</td><td>检查 TCP 连接状态，确认运动控制器已启动</td></tr>
+    <tr><td>PLC 数据偶发丢失</td><td>send+recv 同步阻塞，若机器人响应慢会延迟整个 100ms 周期</td><td>考虑将 send/recv 改为非阻塞或独立线程</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===== fn: app_data_set_output_data ===== -->
+<div class="fn-card" id="fn-app_data_set_output_data">
+  <div class="fn-card-head">
+    <span class="fn-name">app_data_set_output_data()</span>
+    <span class="fn-file">app_data.c : 319</span>
+    <span class="badge badge-done">核心</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">PLC→运动控制器转发。按 submodule_id 路由：PLC Frame (0x151) 走 TCP 80 字节透传；Digital Out (0x131) 控制 LED；Echo (0x140) 存入 echo 缓存。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p><strong>协议转换网关</strong>的核心转发逻辑。PROFINET 侧收到 80 字节 → 原样 TCP 发出 → 立即读取响应 → 缓存供下一周期上报。同步 send+recv 的模式意味着<strong>一个 PROFINET 周期内必须完成一次完整的 TCP 往返</strong>，对运动控制器的响应时间有硬实时要求。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像前台转接电话——老板（PLC）打电话来说 "80 个字" → 前台（pn_dev）立刻转述给员工（robot）→ 等员工回复 "80 个字" → 记下来下次告诉老板。如果员工不在座位上（TCP 断开），前台就记一笔 "此人不在"（fd=-1），等下再试。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">int app_data_set_output_data(
+    uint16_t slot_nbr,        /* PROFINET 槽位号 */
+    uint16_t subslot_nbr,     /* 子槽位号 */
+    uint32_t submodule_id,    /* 子模块 ID，决定处理分支 */
+    uint8_t * data,           /* PLC 发来的原始字节 */
+    uint16_t size             /* 数据长度 */
+);</pre>
+
+    <h4>调用时机</h4>
+    <table>
+    <tr><th>阶段</th><th>调用者</th><th>调用条件</th><th>频率</th></tr>
+    <tr><td>运行时</td><td><code>app_cyclic_data_callback()</code></td><td>IOPS=GOOD 且 outsize>0</td><td>每 100ms</td></tr>
+    </table>
+
+    <h4>关键步骤 (PLC Frame 分支)</h4>
+    <ol class="fn-steps">
+      <li><span class="fn-step-tag">校验</span> <code>size >= sizeof(PLCFrame)</code>，不满足则返回</li>
+      <li><span class="fn-step-tag">转发</span> <code>send(plc_sock_fd, &tx, 80, MSG_NOSIGNAL)</code> → 立即 <code>recv(plc_sock_fd, &rx, 80, MSG_WAITALL)</code></li>
+      <li><span class="fn-step-tag">缓存</span> 加锁 <code>status_mutex</code> → 拷贝 rx 到 <code>latest_robot_status</code></li>
+      <li><span class="fn-step-tag">容错</span> send/recv 失败 → close(plc_sock_fd) → set fd=-1 → TCP 后台线程 1 秒后重连</li>
+    </ol>
+
+    <h4>常见错误与陷阱</h4>
+    <table>
+    <tr><th>错误现象</th><th>根因</th><th>正确做法</th></tr>
+    <tr><td>send 成功但 recv 超时</td><td>运动控制器 busy 或 recv 缓冲区为空，MSG_WAITALL 阻塞整个主线程</td><td>设置 SO_RCVTIMEO，或在独立线程中处理 TCP 收发</td></tr>
+    <tr><td>plc_sock_fd 竞态</td><td>主线程正在 send/recv 时 TCP 线程 close 了 fd</td><td>加锁保护 fd，或让 TCP 线程只负责连接不负责关闭</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===== fn: app_data_get_input_data ===== -->
+<div class="fn-card" id="fn-app_data_get_input_data">
+  <div class="fn-card-head">
+    <span class="fn-name">app_data_get_input_data()</span>
+    <span class="fn-file">app_data.c : 218</span>
+    <span class="badge badge-done">核心</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">运动控制器→PLC 状态返回。按 submodule_id 路由：PLC Frame (0x150) 返回 <code>latest_robot_status</code> + IOPS；Digital In 返回 button/echo 位；Echo 返回增益乘法结果。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p>设备<strong>健康状态上报</strong>。IOPS 机制是工业通信中的"心跳替代方案"——不需要额外的周期性心跳帧，利用已有的周期数据帧携带连接状态。PROFINET 标准规定 IOPS=BAD 时 PLC 应进入安全状态（如停止输出），这是功能安全的一部分。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像快递柜的状态灯——绿灯（IOPS=GOOD）表示柜子里有你的快递（数据有效），红灯（IOPS=BAD）表示柜子坏了或没联网（TCP 断开）。你不需要打电话确认，看一眼灯的颜色就够了（无需额外心跳协议）。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">uint8_t * app_data_get_input_data(
+    uint16_t slot_nbr, uint16_t subslot_nbr, uint32_t submodule_id,
+    bool button_pressed,      /* 按钮 1 状态 */
+    uint16_t * size,          /* [out] 数据长度 */
+    uint8_t * iops            /* [out] IOPS: GOOD/BAD */
+);</pre>
+
+    <h4>输出</h4>
+    <table>
+    <tr><th>submodule_id</th><th>*size</th><th>*iops</th><th>返回值内容</th></tr>
+    <tr><td>0x150 (PLC Frame In)</td><td>80</td><td>GOOD/BAD (取决于 plc_sock_fd)</td><td>latest_robot_status 拷贝</td></tr>
+    <tr><td>0x130 (Digital In)</td><td>1</td><td>GOOD</td><td>I1.0=Q1.0 echo, I1.7=button</td></tr>
+    </table>
+
+    <h4>关键步骤 (PLC Frame 分支)</h4>
+    <ol class="fn-steps">
+      <li><span class="fn-step-tag">加锁</span> <code>pthread_mutex_lock(&status_mutex)</code></li>
+      <li><span class="fn-step-tag">拷贝</span> <code>memcpy(status_buf, &latest_robot_status, 80)</code></li>
+      <li><span class="fn-step-tag">解锁</span> <code>pthread_mutex_unlock(&status_mutex)</code></li>
+      <li><span class="fn-step-tag">判定</span> <code>*iops = (plc_sock_fd > 0) ? PNET_IOXS_GOOD : PNET_IOXS_BAD</code></li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===== fn: plc_tcp_thread_fn ===== -->
+<div class="fn-card" id="fn-plc_tcp_thread_fn">
+  <div class="fn-card-head">
+    <span class="fn-name">plc_tcp_thread_fn()</span>
+    <span class="fn-file">app_data.c : 118</span>
+    <span class="badge badge-info">后台</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">TCP 连接生命周期管理线程。循环执行 connect → 公布 fd → 休眠保活 → 检测断开 → 重连。不参与实际数据收发。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p>嵌入式设备常见的<strong>看门狗式重连</strong>模式。TCP 连接可能因网线松动、对端重启、交换机故障等原因断开。1 秒重试间隔在"快速恢复"和"不消耗过多 CPU"之间取得平衡。连接生命周期管理与数据收发分离的设计模式在高可靠性系统中很常见。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像自动售货机的补货员——定期过来看一眼机器是否正常（保活循环 sleep 1s），发现机器坏了（fd 被关闭）就把钥匙交给维修工（close fd），然后继续巡下一台。补货员不负责卖货（收发数据），那是售货机自己做的事（主线程）。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">static void * plc_tcp_thread_fn(void * arg);  /* arg 未使用 */</pre>
+
+    <h4>调用时机</h4>
+    <table>
+    <tr><th>阶段</th><th>调用者</th><th>调用条件</th><th>频率</th></tr>
+    <tr><td>启动→永久</td><td><code>pthread_create()</code> (在 app_plc_bridge_start 中)</td><td>进程启动时创建</td><td>一次，内部永久循环</td></tr>
+    </table>
+
+    <h4>数据流</h4>
+    <div class="mermaid" style="margin:14px 0">
+flowchart LR
+    S["socket()"] --> C{"connect()<br/>127.0.0.1:31000"}
+    C -->|"失败"| SLP["sleep(1) 重试"]
+    SLP --> C
+    C -->|"成功"| PUB["plc_sock_fd = fd<br/>公布给主线程"]
+    PUB --> LOOP["sleep(1) 保活循环"]
+    LOOP --> CHECK{"fd 被关闭<br/>或线程退出?"}
+    CHECK -->|"否"| LOOP
+    CHECK -->|"是"| CLOSE["close(fd)"]
+    CLOSE -->|"plc_sock_fd==fd"| NEG["plc_sock_fd = -1"]
+    NEG --> C
+    style PUB fill:#448aff,color:#fff
+    style C fill:#ff9100,color:#fff
+    </div>
+
+    <h4>关键步骤</h4>
+    <ol class="fn-steps">
+      <li><span class="fn-step-tag">创建</span> <code>socket(AF_INET, SOCK_STREAM)</code></li>
+      <li><span class="fn-step-tag">连接</span> <code>connect(127.0.0.1:31000)</code>，失败则 sleep(1) 重试</li>
+      <li><span class="fn-step-tag">公布</span> <code>plc_sock_fd = fd</code>（主线程此时可收发）</li>
+      <li><span class="fn-step-tag">休眠</span> sleep(1) 循环，检测 fd 是否被主线程关闭或线程被通知退出</li>
+      <li><span class="fn-step-tag">清理</span> <code>close(fd)</code> → 若 <code>plc_sock_fd == fd</code> 则置 -1 → 回到步骤 1</li>
+    </ol>
+
+    <h4>常见错误与陷阱</h4>
+    <table>
+    <tr><th>错误现象</th><th>根因</th><th>正确做法</th></tr>
+    <tr><td>fd 泄漏</td><td>connect 成功后但在公布 fd 前线程被取消</td><td>确保所有退出路径都 close(fd)</td></tr>
+    <tr><td>plc_sock_fd 竞态</td><td>主线程和 TCP 线程同时读写 fd</td><td>fd 本身是无锁的，存在竞态风险。建议加互斥锁保护 fd 的读写</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===== fn: app_data_init ===== -->
+<div class="fn-card" id="fn-app_data_init">
+  <div class="fn-card-head">
+    <span class="fn-name">app_data_init()</span>
+    <span class="fn-file">app_data.c : 415</span>
+    <span class="badge badge-info">初始化</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">打开 OK3576 调试串口 <code>/dev/ttyFIQ0</code>，配置 115200 8N1，供 <code>print_io_on_change()</code> 输出 IO 位状态。失败时自动回退 stdout。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p>嵌入式设备的<strong>调试串口初始化</strong>。OK3576 的 FIQ（Fast Interrupt Request）调试串口是开发板调试的标准手段。115200 8N1 是工业设备最通用的串口配置。fallback 到 stdout 的设计保证了在没有物理串口的 PC 上也能运行。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像新家装宽带——先试试光纤接口（/dev/ttyFIQ0），能用就按标准配置（115200 8N1）。如果光纤口坏了（串口不存在），就用备用的电话线上网（回退 stdout）。无论如何保证家里能上网。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">void app_data_init(void);</pre>
+
+    <h4>调用时机</h4>
+    <table>
+    <tr><th>阶段</th><th>调用者</th><th>调用条件</th><th>频率</th></tr>
+    <tr><td>启动</td><td><code>main()</code></td><td>进程启动后立即调用</td><td>一次</td></tr>
+    </table>
+
+    <h4>数据流</h4>
+    <div class="mermaid" style="margin:14px 0">
+flowchart LR
+    DEV["/dev/ttyFIQ0"] -->|"fopen()"| INIT["app_data_init()"]
+    INIT -->|"成功"| CFG["stty 115200 8N1 raw<br/>serial_fp = FILE*"]
+    INIT -->|"失败"| FALLBACK["serial_fp = stdout<br/>回退标准输出"]
+    style INIT fill:#448aff,color:#fff
+    </div>
+
+    <h4>关键步骤</h4>
+    <ol class="fn-steps">
+      <li><span class="fn-step-tag">打开</span> <code>fopen("/dev/ttyFIQ0", "w")</code></li>
+      <li><span class="fn-step-tag">配置</span> <code>system("stty -F /dev/ttyFIQ0 115200 -parenb -cstopb raw")</code></li>
+      <li><span class="fn-step-tag">回退</span> 任何步骤失败 → <code>serial_fp = stdout</code></li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===== fn: app_data_set_default_outputs ===== -->
+<div class="fn-card" id="fn-app_data_set_default_outputs">
+  <div class="fn-card-head">
+    <span class="fn-name">app_data_set_default_outputs()</span>
+    <span class="fn-file">app_data.c : 405</span>
+    <span class="badge badge-todo">安全</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">连接断开或 IOPS 无效时，将所有输出设为安全默认值（LED 熄灭、outputdata 清零）。防止 PLC 断线后设备保持最后状态。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p>工业安全中的<strong>故障安全</strong>（Fail-Safe）原则。通信丢失时输出必须进入预定义的安全状态——关闭 LED、清零输出——而不是保持最后值。这是 IEC 61508 功能安全的基本要求：系统在故障时必须处于已知的安全状态。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像电梯断电——不是停在半空让你爬出来，而是自动降回一楼打开门（安全状态）。所有工业设备都必须遵守：失控时回到最安全的状态，而不是保持最后状态。家里的电磁炉也一样：拔掉电源就停止加热，不会继续烧。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">int app_data_set_default_outputs(void);</pre>
+
+    <h4>调用时机</h4>
+    <table>
+    <tr><th>阶段</th><th>调用者</th><th>调用条件</th><th>频率</th></tr>
+    <tr><td>断开 / 错误</td><td><code>app_cyclic_data_callback()</code></td><td>IOPS≠GOOD 或数据长度不匹配</td><td>事件驱动</td></tr>
+    <tr><td>释放</td><td><code>app_ar_sm_released_handler()</code></td><td>PLC 释放 AR</td><td>事件驱动</td></tr>
+    </table>
+
+    <h4>数据流</h4>
+    <div class="mermaid" style="margin:14px 0">
+flowchart LR
+    TRIGGER["IOPS=BAD 或<br/>长度不匹配 或<br/>AR 释放"] --> FN["app_data_set_default_outputs()"]
+    FN --> LED["app_set_led(1, false)<br/>LED 熄灭"]
+    FN --> DATA["outputdata[0] = 0<br/>输出清零"]
+    style FN fill:#ff9100,color:#fff
+    </div>
+
+    <h4>依赖关系</h4>
+    <div class="col2">
+      <div><strong>被以下情况触发</strong>
+        <ul class="fn-dep-list">
+          <li>PLC 断开 AR → app_release_ind → app_set_default_outputs</li>
+          <li>IOPS 变为 BAD → app_cyclic_data_callback 检测后调用</li>
+          <li>输出长度不匹配 → same path</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== fn: pnet_handle_periodic ===== -->
+<div class="fn-card" id="fn-pnet_handle_periodic">
+  <div class="fn-card-head">
+    <span class="fn-name">pnet_handle_periodic()</span>
+    <span class="fn-file">pnet_api.c (SDK)</span>
+    <span class="badge badge-done">核心</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">p-net 栈的"心跳"入口，每个 1ms tick 必须调用一次。内部触发调度器 tick（CPM 看门狗、PPM 发送、CMIO 轮询）、RPC 定时器、告警定时器。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p>协议栈的<strong>心跳+看门狗+调度器</strong>三合一入口。类似于：PLC 的看门狗定时器（Data Hold Timer 超时断开）、RTOS 的 tick 中断（驱动所有定时任务）、Linux 的 jiffies（周期性维护操作）。1ms 调用一次意味着任何内部处理都不能超过 1ms，否则会丢 tick。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像物业经理的每日巡检——查消防栓（CPM 看门狗：超时没水就报修）→ 发快递（PPM 发送：把攒了一天的包裹寄出）→ 检查新商户入驻（CMIO 轮询）→ 更新楼层指引（端口状态）。每天必须巡检一次，漏了就可能出问题。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">void pnet_handle_periodic(pnet_t * net);</pre>
+
+    <h4>调用时机</h4>
+    <table>
+    <tr><th>阶段</th><th>调用者</th><th>调用条件</th><th>频率</th></tr>
+    <tr><td>运行时</td><td><code>app_handle_event_timer()</code></td><td>每次 APP_EVENT_TIMER 触发</td><td>1ms（无条件）</td></tr>
+    </table>
+
+    <h4>数据流</h4>
+    <div class="mermaid" style="margin:14px 0">
+flowchart TB
+    CALL["pnet_handle_periodic(net)"] --> RPC["pf_cmrpc_periodic()<br/>DCE/RPC 定时器"]
+    CALL --> ALARM["pf_alarm_periodic()<br/>告警重传定时器"]
+    CALL --> SCHED["pf_scheduler_tick()<br/>触发到期定时器"]
+    SCHED --> CPM["CPM 看门狗<br/>Data Hold Timer"]
+    SCHED --> PPM["PPM 发送<br/>组装+发送以太网帧"]
+    SCHED --> CMIO["CMIO 启动轮询<br/>WDATA 状态转 DATA"]
+    CALL --> PD["pf_pdport_periodic()<br/>端口状态更新"]
+    style CALL fill:#448aff,color:#fff
+    </div>
+
+    <h4>关键步骤</h4>
+    <ol class="fn-steps">
+      <li><span class="fn-step-tag">RPC</span> 处理 DCE/RPC 超时重传（连接建立阶段关键）</li>
+      <li><span class="fn-step-tag">告警</span> 检查是否有告警需要重传（TACK 超时）</li>
+      <li><span class="fn-step-tag">调度</span> <code>pf_scheduler_tick()</code>：遍历到期定时器，依次执行回调</li>
+      <li><span class="fn-step-tag">端口</span> 更新 LLDP Peer 超时检测</li>
+    </ol>
+
+    <h4>常见错误与陷阱</h4>
+    <table>
+    <tr><th>错误现象</th><th>根因</th><th>正确做法</th></tr>
+    <tr><td>PPM 不发送帧</td><td>pnet_handle_periodic 未被调用或调用频率不够</td><td>确保 1ms tick 稳定触发，不要在回调中做耗时操作</td></tr>
+    <tr><td>连接莫名断开</td><td>Data Hold Timer 超时（CPM 看门狗到期）</td><td>检查 PLC 是否持续发送帧；检查 dht 配置</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===== fn: app_utils_cyclic_data_poll ===== -->
+<div class="fn-card" id="fn-app_utils_cyclic_data_poll">
+  <div class="fn-card-head">
+    <span class="fn-name">app_utils_cyclic_data_poll()</span>
+    <span class="fn-file">app_utils.c : 847</span>
+    <span class="badge badge-info">调度</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">遍历所有 Slot 的所有 Subslot，对每个 plugged 且有 cyclic_callback 的 subslot 调用其回调函数。这是从"100ms 定时器"到"具体 subslot 数据收发"的桥梁。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p>PROFINET 的<strong>模块扫描</strong>。在真实 PLC 中，CPU 会依次扫描每个 IO 模块读取输入/写入输出。这个双重 for 循环就是软件版的"背板总线扫描"——先遍历槽位，再遍历子槽位，对每个有数据的模块执行 IO 刷新。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像老师收作业——从第一排到最后一排（遍历 slot），每排从左到右（遍历 subslot），每个同学（plugged subslot）把作业交上来（调用 cyclic_callback）。空座位（DAP）跳过不收。两重 for 循环就是标准的"一行一行一列一列收"。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">void app_utils_cyclic_data_poll(app_api_t * api);</pre>
+
+    <h4>调用时机</h4>
+    <table>
+    <tr><th>阶段</th><th>调用者</th><th>调用条件</th><th>频率</th></tr>
+    <tr><td>运行时</td><td><code>app_handle_cyclic_data()</code></td><td>已连接控制器 + tick 计数 % 100 == 0</td><td>每 100ms</td></tr>
+    <tr><td>PRMEND</td><td><code>app_set_initial_data_and_ioxs()</code></td><td>SM_RELEASED 事件</td><td>事件驱动</td></tr>
+    </table>
+
+    <h4>数据流</h4>
+    <div class="mermaid" style="margin:14px 0">
+flowchart LR
+    API["main_api<br/>slot[0..3]"] --> LOOP["双重 for 循环<br/>slot × subslot"]
+    LOOP --> CHECK{"plugged?<br/>callback?"}
+    CHECK -->|"是"| CB["subslot->cyclic_callback()<br/>= app_cyclic_data_callback"]
+    CHECK -->|"否(DAP)"| SKIP["跳过"]
+    style LOOP fill:#448aff,color:#fff
+    </div>
+
+    <h4>关键步骤</h4>
+    <ol class="fn-steps">
+      <li><span class="fn-step-tag">遍历</span> 外层 for slot (0..PNET_MAX_SLOTS)，内层 for subslot (0..PNET_MAX_SUBSLOTS)</li>
+      <li><span class="fn-step-tag">检查</span> <code>subslot->used && subslot->cyclic_callback != NULL</code></li>
+      <li><span class="fn-step-tag">调用</span> <code>subslot->cyclic_callback(subslot, subslot->tag)</code></li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===== fn: update_button_states ===== -->
+<div class="fn-card" id="fn-update_button_states">
+  <div class="fn-card-head">
+    <span class="fn-name">update_button_states()</span>
+    <span class="fn-file">sampleapp_common.c : 1555</span>
+    <span class="badge badge-info">工具</span>
+  </div>
+  <div class="fn-card-body">
+    <p class="fn-summary">每 10ms 读取硬件按钮状态（通过文件读取模拟）。Button2 上升沿触发 Demo 状态机推进。</p>
+    <h4>工程含义</h4>
+    <div class="fn-engineering">
+      <p>硬件按钮的<strong>去抖采样</strong>。机械按钮在按下/释放瞬间会产生几十毫秒的触点抖动（bouncing），10ms 采样周期 + 上升沿检测（prev vs cur）是最简单的软件去抖方案。真正的工业设备可能用 20~50ms 周期或硬件 RC 滤波。</p>
+    </div>
+    <div class="fn-analogy">
+      <span class="fn-analogy-label">生活类比</span>
+      <span>像按门铃——你按下去（0→1），门铃响一声。按住不放（1→1），不会一直响。松开再按（1→0→1），才响第二声。这就是上升沿检测：只有信号从低变高的瞬间才触发动作。手机触屏也是同样原理——不是"手指一直放在屏幕上"，而是"手指刚放上去"那一瞬间。</span>
+    </div>
+
+
+
+    <h4>函数签名</h4>
+    <pre class="fn-sig">static void update_button_states(app_data_t * app);</pre>
+
+    <h4>调用时机</h4>
+    <table>
+    <tr><th>阶段</th><th>调用者</th><th>调用条件</th><th>频率</th></tr>
+    <tr><td>运行时</td><td><code>app_handle_event_timer()</code></td><td>buttons_tick_counter % 10 == 0</td><td>每 10ms</td></tr>
+    </table>
+
+    <h4>数据流</h4>
+    <div class="mermaid" style="margin:14px 0">
+flowchart LR
+    B1["app_get_button(1)<br/>读文件: -b FILE"] --> S1["app->button1_pressed"]
+    B2["app_get_button(2)<br/>读文件: -d FILE"] --> EDGE["上升沿检测<br/>prev vs cur"]
+    EDGE -->|"0→1"| DEMO["app_handle_demo_pnet_api()<br/>推进 Demo 状态机"]
+    style EDGE fill:#ff9100,color:#fff
+    </div>
+
+    <h4>关联函数</h4>
+    <ul class="fn-dep-list">
+      <li><code>app_get_button()</code> — 平台相关，Linux 上读文件首字符是否为 '1'</li>
+      <li><code>app_handle_demo_pnet_api()</code> — Button2 上升沿触发，循环执行 11 种 P-Net API 操作</li>
+    </ul>
+  </div>
+</div>
+
+</section>
+
+<!-- ==================== TAB 7: 关键名词 ==================== -->
+<section id="glossary">
+<h2>关键名词解析</h2>
+
+<p style="color:var(--muted);margin-bottom:20px">
+建立「名词→代码→行为」三层映射。每个名词区分标准定义和本项目实际含义。
+</p>
+
+<div class="gl-filter">
+  <button class="gl-filter-btn active" onclick="filterGlossary('all',this)">全部</button>
+  <button class="gl-filter-btn" onclick="filterGlossary('protocol',this)">协议层</button>
+  <button class="gl-filter-btn" onclick="filterGlossary('data',this)">数据结构</button>
+  <button class="gl-filter-btn" onclick="filterGlossary('state',this)">状态机</button>
+  <button class="gl-filter-btn" onclick="filterGlossary('arch',this)">架构概念</button>
+  <button class="gl-filter-btn" onclick="filterGlossary('hardware',this)">硬件接口</button>
+</div>
+
+<input type="text" id="gl-search" placeholder="搜索名词..." oninput="searchGlossary(this.value)">
+
+<div id="gl-list">
+
+<!-- CP -->
+<div class="gl-card" data-category="protocol" data-name="CPM Consumer Protocol Machine">
+  <div class="gl-card-head">
+    <div><span class="gl-term">CPM</span><span class="gl-term-full">Consumer Protocol Machine</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">协议层</span><span class="gl-importance">⭐⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>PROFINET 协议栈中负责<strong>接收</strong>周期性输出数据的协议机。管理从 PLC 到设备的消费路径、循环计数器验证、数据保持定时器。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>pf_cpm.c</code> + <code>pf_cpm_driver_sw.c</code>。PLC 发来的 80 字节 Output 帧由 ETH RX 线程接收后写入 CPM 双缓冲（p_buffer_cpm / p_buffer_app），主线程通过 <code>pnet_output_get_data_and_iops()</code> 读取。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>pf_cpm_c_data_ind()</code></td><td>pf_cpm_driver_sw.c:257</td><td>ETH RX 线程收到帧→验证FrameID→调用此函数入缓冲</td></tr>
+    <tr><td><code>pf_cpm_get_data_and_iops()</code></td><td>pf_cpm.c:398</td><td>主线程拉取最新输出数据的入口</td></tr>
+    <tr><td><code>cpm_buf_lock</code></td><td>pf_cpm_driver_sw.c</td><td>保护双缓冲交换的互斥锁</td></tr>
+    </table>
+    <h4>关联名词</h4>
+    <div class="gl-relations">
+      <div class="gl-rel-item gl-rel-peer"><span class="gl-rel-label">对比</span><a href="#gl-ppm" class="gl-rel-link">PPM</a><span class="gl-rel-desc">— CPM 负责收（PLC→设备），PPM 负责发（设备→PLC），缓冲机制不同</span></div>
+      <div class="gl-rel-item gl-rel-child"><span class="gl-rel-label">下位</span><a href="#gl-eth-rx-thread" class="gl-rel-link">ETH RX 线程</a><span class="gl-rel-desc">— CPM 的帧接收在此线程中异步执行</span></div>
+    </div>
+    <h4>理解层次</h4>
+    <div class="gl-levels">
+      <div class="gl-level"><span class="gl-level-tag gl-level-1">L1 能用</span><span>CPM 是收 PLC 数据的通道，应用层通过 pnet_output_get_data_and_iops() 拿到数据</span></div>
+      <div class="gl-level"><span class="gl-level-tag gl-level-2">L2 能改</span><span>理解双缓冲机制：p_buffer_cpm 由 ETH RX 线程写，p_buffer_app 由主线程读，swap 时锁保护</span></div>
+      <div class="gl-level"><span class="gl-level-tag gl-level-3">L3 能造</span><span>Data Hold Timer 过期会触发 ABORT；new_buf 标志控制的 put/get 逻辑在 pf_cpm_driver_sw.c 中</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PPM -->
+<div class="gl-card" data-category="protocol" data-name="PPM Provider Protocol Machine" id="gl-ppm">
+  <div class="gl-card-head">
+    <div><span class="gl-term">PPM</span><span class="gl-term-full">Provider Protocol Machine</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">协议层</span><span class="gl-importance">⭐⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>PROFINET 协议栈中负责<strong>发送</strong>周期性输入数据的协议机。管理设备到 PLC 的提供路径、循环计数器生成、发送定时器。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>pf_ppm.c</code> + <code>pf_ppm_driver_sw.c</code>。主线程通过 <code>pnet_input_set_data_and_iops()</code> 写入 buffer_data，调度器定时触发 <code>pf_ppm_drv_sw_send()</code> 组装以太网帧并调用 <code>pnal_eth_send()</code> 发出。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>pf_ppm_set_data_and_iops()</code></td><td>pf_ppm.c:503</td><td>主线程写入输入数据的入口</td></tr>
+    <tr><td><code>pf_ppm_drv_sw_send()</code></td><td>pf_ppm_driver_sw.c:37</td><td>调度器定时触发的发送函数</td></tr>
+    <tr><td><code>pf_ppm_finish_buffer()</code></td><td>pf_ppm.c:182</td><td>将 buffer_data 组装为以太网帧</td></tr>
+    </table>
+    <h4>关联名词</h4>
+    <div class="gl-relations">
+      <div class="gl-rel-item gl-rel-peer"><span class="gl-rel-label">对比</span><a href="#gl-cpm" class="gl-rel-link">CPM</a><span class="gl-rel-desc">— PPM 是单缓冲+定时发送，CPM 是双缓冲+异步接收</span></div>
+      <div class="gl-rel-item gl-rel-child"><span class="gl-rel-label">下位</span><span class="gl-rel-link" style="color:var(--blue)">调度器</span><span class="gl-rel-desc">— PPM 发送由 pf_scheduler 的定时器触发</span></div>
+    </div>
+    <h4>理解层次</h4>
+    <div class="gl-levels">
+      <div class="gl-level"><span class="gl-level-tag gl-level-1">L1 能用</span><span>PPM 是发 PLC 数据的通道，应用层通过 pnet_input_set_data_and_iops() 推送数据</span></div>
+      <div class="gl-level"><span class="gl-level-tag gl-level-2">L2 能改</span><span>发送周期由 control_interval（来自 IOCR 参数×reduction_ratio）决定；循环计数器在 pf_ppm_finish_buffer 中自动递增</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PLCFrame -->
+<div class="gl-card" data-category="data" data-name="PLCFrame 80字节协议帧">
+  <div class="gl-card-head">
+    <div><span class="gl-term">PLCFrame</span><span class="gl-term-full">80 字节 PLC 通信帧</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-todo">数据结构</span><span class="gl-importance">⭐⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>无通用标准——这是本项目自定义的 80 字节二进制协议帧。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>app_gsdml.h</code> 定义的 packed struct：<code>uint8_t bool_data[32]</code> (256 bool) + <code>int16_t int_data[8]</code> (8 个有符号整数) + <code>float real_data[8]</code> (8 个浮点)。PLC 和 robot_ros2 两端都按此结构解析。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>struct PLCFrame</code></td><td>app_gsdml.h / plc_communicator.h</td><td>pn_dev 和 robot_ros2 各自定义，需保证对齐一致</td></tr>
+    <tr><td><code>APP_GSDML_PLC_FRAME_SIZE</code></td><td>app_gsdml.h:155</td><td>80 字节常量，用于 GSDML 模块大小声明</td></tr>
+    <tr><td><code>latest_robot_status</code></td><td>app_data.c</td><td>pn_dev 侧缓存的最近一帧机器人状态</td></tr>
+    </table>
+    <h4>关联名词</h4>
+    <div class="gl-relations">
+      <div class="gl-rel-item gl-rel-parent"><span class="gl-rel-label">上位</span><span class="gl-rel-link" style="color:var(--blue)">GSDML PLC Frame 模块</span><span class="gl-rel-desc">— PLCFrame 作为 PROFINET 子模块 (0x50) 的 IO 数据载体</span></div>
+    </div>
+    <h4>理解层次</h4>
+    <div class="gl-levels">
+      <div class="gl-level"><span class="gl-level-tag gl-level-1">L1 能用</span><span>PLC 写 %QB0~79 就是 PLCFrame 的 80 字节，%IB0~79 读到的是机器人状态</span></div>
+      <div class="gl-level"><span class="gl-level-tag gl-level-2">L2 能改</span><span>修改 bool_data[32]/int_data[8]/real_data[8] 的映射关系需同步更新 pn_dev 和 robot_ros2 两侧代码</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- IOPS -->
+<div class="gl-card" data-category="protocol" data-name="IOPS IO Provider Status">
+  <div class="gl-card-head">
+    <div><span class="gl-term">IOPS</span><span class="gl-term-full">IO Provider Status</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">协议层</span><span class="gl-importance">⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>PROFINET 中标识输入数据有效性的状态字。GOOD=数据有效，BAD=数据无效。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p>pn_dev 用 <code>plc_sock_fd > 0</code> 作为 IOPS 判定依据：TCP 连通→GOOD，TCP 断开→BAD。PLC 侧通过 IOPS 实时感知运动控制器是否在线，无需额外心跳。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>PNET_IOXS_GOOD / PNET_IOXS_BAD</code></td><td>pnet_api.h</td><td>p-net 定义的 IOPS 枚举值</td></tr>
+    <tr><td><code>app_data_get_input_data()</code></td><td>app_data.c:218</td><td>根据 plc_sock_fd 设置 *iops</td></tr>
+    </table>
+    <h4>常见误解</h4>
+    <details><summary>⚠️ 常见误解</summary>
+    <ul style="margin-top:8px;padding-left:18px">
+      <li>IOPS=BAD 不代表 PROFINET 断线 → 只代表运动控制器 TCP 断开，PROFINET 可能仍然在线</li>
+      <li>IOPS 不是心跳 → 它随每帧一起发送，不需要额外的心跳协议</li>
+    </ul></details>
+  </div>
+</div>
+
+<!-- AR -->
+<div class="gl-card" data-category="state" data-name="AR Application Relation">
+  <div class="gl-card-head">
+    <div><span class="gl-term">AR</span><span class="gl-term-full">Application Relation</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">状态机</span><span class="gl-importance">⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>PROFINET IO Controller 与 IO Device 之间的应用层连接关系。包含一个或多个 CR (Communication Relation)。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>pf_cmdev.c</code> 管理的 AR 状态机。PLC CONNECT 请求→CMDEV 建立 AR→CMSU 协调各协议机→PrmEnd→数据交换。pn_dev 最多支持 PNET_MAX_AR=16 个 AR。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>app_ar_t</code></td><td>app_utils.h</td><td>pn_dev 侧的 AR 管理结构</td></tr>
+    <tr><td><code>app_connect_ind()</code></td><td>sampleapp_common.c</td><td>AR 建立时的应用回调</td></tr>
+    </table>
+    <h4>理解层次</h4>
+    <div class="gl-levels">
+      <div class="gl-level"><span class="gl-level-tag gl-level-1">L1 能用</span><span>AR 就是 PLC 和设备之间的"会话"。建立后才能交换 IO 数据</span></div>
+      <div class="gl-level"><span class="gl-level-tag gl-level-2">L2 能改</span><span>每个 AR 可含 1 Input CR + 1 Output CR（PNET_MAX_CR=2）。AR 的生命周期由 CMDEV 状态机驱动</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Subslot -->
+<div class="gl-card" data-category="arch" data-name="Subslot 子槽位">
+  <div class="gl-card-head">
+    <div><span class="gl-term">Subslot</span><span class="gl-term-full">子槽位 / 子模块</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">架构概念</span><span class="gl-importance">⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>PROFINET 设备模型中 Slot 下的子单元。每个 Subslot 可包含一个子模块（Submodule），子模块定义了 IO 数据的方向和大小。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>app_subslot_t</code> (app_utils.h) 是 pn_dev 对 subslot 的抽象。每个 subslot 含 <code>cyclic_callback</code> 函数指针、<code>submodule_id</code>、<code>outsize/insize</code>。Slot 1 的 Subslot 1 配 PLC Frame 模块（80B In + 80B Out）。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>app_subslot_t</code></td><td>app_utils.h</td><td>pn_dev 的 subslot 描述符结构</td></tr>
+    <tr><td><code>app_utils_plug_submodule()</code></td><td>app_utils.c</td><td>将子模块注册到指定 slot/subslot</td></tr>
+    <tr><td><code>app_utils_cyclic_data_poll()</code></td><td>app_utils.c</td><td>遍历所有 plugged subslot 调用其 cyclic_callback</td></tr>
+    </table>
+    <h4>常见误解</h4>
+    <details><summary>⚠️ 常见误解</summary>
+    <ul style="margin-top:8px;padding-left:18px">
+      <li>Subslot 不是"物理槽位" → 是逻辑概念，GSDML 中定义，对应软件中的 app_subslot_t</li>
+      <li>DAP (Slot 0) 也有 Subslot → Slot 0 的 Subslot 0x0001 是 Interface，0x8000 是 Port，不含 IO 数据</li>
+    </ul></details>
+  </div>
+</div>
+
+<!-- igH EtherCAT -->
+<div class="gl-card" data-category="hardware" data-name="IgH EtherCAT Master">
+  <div class="gl-card-head">
+    <div><span class="gl-term">IgH EtherCAT</span><span class="gl-term-full">IgH EtherCAT Master</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-todo">硬件接口</span><span class="gl-importance">⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>IgH (Ingenieur-Gemeinschaft Hierholz) 开发的 Linux 内核态 EtherCAT 主站。通过 <code>ecrt.h</code> 用户空间 API 访问。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p>robot_software_control 的 <code>ethercat_driver_ros2</code> 包基于 IgH 主站。11 个从站通过 <code>ecrt_master_slave_config()</code> 配置 PDO 映射，<code>ecrt_domain_process()</code> 交换数据。</p></div>
+    </div>
+    <h4>关联名词</h4>
+    <div class="gl-relations">
+      <div class="gl-rel-item gl-rel-child"><span class="gl-rel-label">下位</span><span class="gl-rel-link" style="color:var(--blue)">EthercatDriver</span><span class="gl-rel-desc">— ros2_control 硬件接口插件，封装 IgH 的 read/write</span></div>
+      <div class="gl-rel-item gl-rel-child"><span class="gl-rel-label">下位</span><span class="gl-rel-link" style="color:var(--blue)">CiA402</span><span class="gl-rel-desc">— 基于 IgH PDO 的伺服驱动协议</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- TCP Bridge -->
+<div class="gl-card" data-category="arch" data-name="TCP Bridge 透传桥接">
+  <div class="gl-card-head">
+    <div><span class="gl-term">TCP Bridge</span><span class="gl-term-full">TCP 透传桥接</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">架构概念</span><span class="gl-importance">⭐⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>无通用标准——这是本项目自定义的通信模式。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p>pn_dev 与 robot_ros2 之间的 TCP 连接（127.0.0.1:31000）。pn_dev 作为 TCP 客户端连接 robot_ros2 的 PLCCommunicator。80 字节 PLCFrame 原样透传，pn_dev 不解析数据内容。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>plc_tcp_thread_fn()</code></td><td>app_data.c:118</td><td>pn_dev 侧 TCP 连接管理线程</td></tr>
+    <tr><td><code>plc_sock_fd</code></td><td>app_data.c</td><td>全局 socket fd，主线程用它 send/recv</td></tr>
+    <tr><td><code>PLCCommunicator</code></td><td>plc_communicator.cpp</td><td>robot_ros2 侧 TCP Server</td></tr>
+    </table>
+    <h4>关联名词</h4>
+    <div class="gl-relations">
+      <div class="gl-rel-item gl-rel-parent"><span class="gl-rel-label">上位</span><span class="gl-rel-link" style="color:var(--blue)">pn_dev</span><span class="gl-rel-desc">— TCP Bridge 是 pn_dev 与 robot_ros2 之间的通信桥梁</span></div>
+      <div class="gl-rel-item gl-rel-peer"><span class="gl-rel-label">对比</span><span class="gl-rel-link" style="color:var(--blue)">共享内存</span><span class="gl-rel-desc">— 另一种通信方式（/dev/shm/），延迟更低但需双方改造</span></div>
+    </div>
+    <h4>常见误解</h4>
+    <details><summary>⚠️ 常见误解</summary>
+    <ul style="margin-top:8px;padding-left:18px">
+      <li>TCP Bridge 不是"协议转换" → 它是透传，不解析 PLCFrame 内容</li>
+      <li>TCP 线程不参与数据收发 → 实际 send/recv 在主线程的 app_data_set_output_data() 中</li>
+    </ul></details>
+  </div>
+</div>
+
+<!-- DAP -->
+<div class="gl-card" data-category="arch" data-name="DAP Device Access Point">
+  <div class="gl-card-head">
+    <div><span class="gl-term">DAP</span><span class="gl-term-full">Device Access Point</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">架构概念</span><span class="gl-importance">⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>PROFINET 设备模型中的 Slot 0。代表设备本身，包含 Interface 和 Port 子模块。每个设备有且仅有一个 DAP。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p>pn_dev 在 <code>app_loop_forever()</code> 启动时调用 <code>app_plug_dap()</code> 注册 DAP 的 3 个子模块（Interface、Port 1）。DAP 没有 IO 数据，不触发 cyclic_callback。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>app_plug_dap()</code></td><td>sampleapp_common.c</td><td>注册 DAP 子模块到 Slot 0</td></tr>
+    <tr><td><code>PNET_SLOT_DAP_IDENT</code></td><td>pnet_api.h</td><td>DAP Slot 标识号 (0)</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Scheduler -->
+<div class="gl-card" data-category="arch" data-name="Scheduler p-net内部调度器">
+  <div class="gl-card-head">
+    <div><span class="gl-term">调度器</span><span class="gl-term-full">p-net 内部定时器调度器</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">架构概念</span><span class="gl-importance">⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>p-net 内部基于绝对时间的优先级队列调度器。管理 CPM 看门狗、PPM 发送、CMIO 启动轮询等周期性事件的触发。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>pf_scheduler.c</code>。基于链表实现，按 <code>when</code>（绝对时间）排序。每次 <code>pnet_handle_periodic()</code> 中调用 <code>pf_scheduler_tick()</code>，遍历到期定时器并执行回调。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>pf_scheduler_tick()</code></td><td>pf_scheduler.c:444</td><td>主线程每 1ms 调用，触发到期定时器</td></tr>
+    <tr><td><code>pf_scheduler_add()</code></td><td>pf_scheduler.c:299</td><td>注册新定时器，指定延迟和回调</td></tr>
+    </table>
+  </div>
+</div>
+
+
+<!-- ===== NEW: Foundational Concepts ===== -->
+
+<!-- Event Flags -->
+<div class="gl-card" data-category="arch" data-name="Event Flags 事件标志">
+  <div class="gl-card-head">
+    <div><span class="gl-term">事件标志</span><span class="gl-term-full">Event Flags (os_event_t)</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">架构概念</span><span class="gl-importance">⭐⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>OSAL 提供的事件标志组（Event Flags），基于位掩码的线程间同步机制。一个线程等待多个事件位，其他线程/ISR 设置事件位唤醒等待者。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>app_data_t.main_events</code>（os_event_t*）是主事件循环的唯一等待对象。5 个事件位定义在 <code>sampleapp_common.c:31-35</code>：READY_FOR_DATA(bit0)、TIMER(bit1)、ALARM(bit2)、SM_RELEASED(bit3)、ABORT(bit15)。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>APP_EVENT_TIMER</code> (bit1)</td><td>sampleapp_common.c:32</td><td>1ms 定时器 ISR 设置，驱动整个数据循环</td></tr>
+    <tr><td><code>APP_EVENT_READY_FOR_DATA</code> (bit0)</td><td>sampleapp_common.c:31</td><td>PLC PrmEnd 后设置，触发 pnet_application_ready()</td></tr>
+    <tr><td><code>os_event_wait(main_events, ...)</code></td><td>app_loop_forever L1734</td><td>阻塞等待任意事件位，返回后按位分发</td></tr>
+    </table>
+    <h4>关联名词</h4>
+    <div class="gl-relations">
+      <div class="gl-rel-item gl-rel-child"><span class="gl-rel-label">下位</span><span class="gl-rel-link" style="color:var(--blue)">Tick 系统</span><span class="gl-rel-desc">— TIMER 事件由 1ms tick 定时器触发</span></div>
+      <div class="gl-rel-item gl-rel-parent"><span class="gl-rel-label">上位</span><span class="gl-rel-link" style="color:var(--blue)">app_loop_forever</span><span class="gl-rel-desc">— 事件循环是事件标志的唯一消费者</span></div>
+    </div>
+    <h4>理解层次</h4>
+    <div class="gl-levels">
+      <div class="gl-level"><span class="gl-level-tag gl-level-1">L1 能用</span><span>5 个事件位控制整个应用的状态流转，TIMER 是最频繁的（1ms）</span></div>
+      <div class="gl-level"><span class="gl-level-tag gl-level-2">L2 能改</span><span>添加新事件位需同步更新 os_event_wait 的掩码和 switch-case 分发</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tick System -->
+<div class="gl-card" data-category="arch" data-name="Tick System 定时器系统">
+  <div class="gl-card-head">
+    <div><span class="gl-term">Tick 系统</span><span class="gl-term-full">1ms 定时器驱动</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">架构概念</span><span class="gl-importance">⭐⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>基于 OS 定时器的周期性 tick 驱动模式。每个 tick 执行固定任务，通过计数器分频实现不同频率的操作。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>APP_TICK_INTERVAL_US = 1000</code>（1ms）。os_timer_create 创建 1ms 周期定时器，每次触发设置 APP_EVENT_TIMER。两个分频计数器：<code>buttons_tick_counter</code>（/10=10ms）和 <code>process_data_tick_counter</code>（/100=100ms）。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>APP_TICK_INTERVAL_US</code> = 1000</td><td>sampleapp_common.h:27</td><td>基础 tick 周期（μs）</td></tr>
+    <tr><td><code>APP_TICKS_READ_BUTTONS</code> = 10</td><td>sampleapp_common.h:39</td><td>按钮采样分频（10ms）</td></tr>
+    <tr><td><code>APP_TICKS_UPDATE_DATA</code> = 100</td><td>sampleapp_common.h:40</td><td>数据更新分频（100ms）</td></tr>
+    </table>
+    <h4>常见误解</h4>
+    <details><summary>⚠️ 常见误解</summary>
+    <ul style="margin-top:8px;padding-left:18px">
+      <li>100ms 数据更新 ≠ PROFINET 1ms 周期 → p-net 内部以 1ms 收发帧，但应用层每 100ms 才轮询一次缓冲区</li>
+      <li>Tick 不是中断 → 1ms 定时器通过 SIGALRM 信号实现（Linux），在独立线程中处理</li>
+    </ul></details>
+  </div>
+</div>
+
+<!-- DAP -->
+<div class="gl-card" data-category="arch" data-name="DAP Device Access Point">
+  <div class="gl-card-head">
+    <div><span class="gl-term">DAP</span><span class="gl-term-full">Device Access Point (Slot 0)</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">架构概念</span><span class="gl-importance">⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>PROFINET 设备模型中的 Slot 0。代表设备本身，包含 Interface (0x0001) 和 Port (0x8000) 子模块。每个设备只有一个 DAP，无 IO 数据。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p>在 <code>app_loop_forever()</code> 入口调用 <code>app_plug_dap()</code>。分别注册 3 个子模块：Interface(0x0001)、Port1(0x8000)、Port2~4（取决于物理端口数）。DAP 子模块的 data_dir 为 PNET_DIR_NO_IO，不触发 cyclic_callback。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>app_plug_dap()</code></td><td>sampleapp_common.c:893</td><td>自注册 DAP 子模块（应用内部 plug，非 PLC 触发）</td></tr>
+    <tr><td><code>PNET_SUBMOD_DAP_INTERFACE_1_IDENT</code></td><td>pnet_api.h</td><td>Interface 子模块 ID (0x0001)</td></tr>
+    <tr><td><code>PNET_SUBMOD_DAP_PORT_1_IDENT</code></td><td>pnet_api.h</td><td>Port 1 子模块 ID (0x8000)</td></tr>
+    </table>
+    <h4>常见误解</h4>
+    <details><summary>⚠️ 常见误解</summary>
+    <ul style="margin-top:8px;padding-left:18px">
+      <li>DAP 不是"用户模块" → 它代表设备硬件，由应用主动 plug，不等待 PLC 的 exp_module_ind 回调</li>
+      <li>DAP 子模块不参与 IO 数据交换 → 它们在 cyclic_data_poll 中被跳过（is_no_io 检查）</li>
+    </ul></details>
+  </div>
+</div>
+
+<!-- IOPS/IOCS -->
+<div class="gl-card" data-category="protocol" data-name="IOXS IOPS与IOCS">
+  <div class="gl-card-head">
+    <div><span class="gl-term">IOXS</span><span class="gl-term-full">IOPS / IOCS — 数据质量状态</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">协议层</span><span class="gl-importance">⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>IOPS (Provider Status) = 设备→PLC 的数据有效性。IOCS (Consumer Status) = PLC→设备的数据确认。两者独立，均为每帧携带。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p>IOPS 由 <code>app_data_get_input_data()</code> 设置，取决于 <code>plc_sock_fd > 0</code>。IOCS 由 <code>pnet_input_get_iocs()</code> 读取，来自 PLC 对设备输出的确认。初始值均为 BAD，PRMEND 后通过 <code>app_set_initial_data_and_ioxs()</code> 设为 GOOD。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>PNET_IOXS_GOOD / PNET_IOXS_BAD</code></td><td>pnet_api.h</td><td>p-net 定义的 IOXS 枚举</td></tr>
+    <tr><td><code>subslot->outdata_iops</code></td><td>app_utils.h</td><td>pn_dev 侧缓存的输出 IOPS</td></tr>
+    <tr><td><code>subslot->indata_iocs</code></td><td>app_utils.h</td><td>pn_dev 侧缓存的输入 IOCS</td></tr>
+    </table>
+    <h4>关联名词</h4>
+    <div class="gl-relations">
+      <div class="gl-rel-item gl-rel-peer"><span class="gl-rel-label">对比</span><span class="gl-rel-link" style="color:var(--blue)">IOPS vs IOCS</span><span class="gl-rel-desc">— IOPS 是"我的数据好不好"，IOCS 是"PLC 收到没"。IOPS 由设备设置，IOCS 由 PLC 设置</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- GSDML -->
+<div class="gl-card" data-category="arch" data-name="GSDML 设备描述文件">
+  <div class="gl-card-head">
+    <div><span class="gl-term">GSDML</span><span class="gl-term-full">General Station Description Markup Language</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">架构概念</span><span class="gl-importance">⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>PROFINET 设备描述文件（XML 格式）。定义设备的模块目录、IO 数据大小、参数、诊断能力。PLC 工程工具导入 GSDML 后可将设备加入项目。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>GSDML-V2.43-RT-Labs-P-Net-Sample-App-20240530.xml</code>。C 代码中对应的模块/子模块定义在 <code>app_gsdml.c</code>（静态数组 <code>app_gsdml_modules[]</code>、<code>app_gsdml_submodules[]</code>、<code>app_gsdml_parameters[]</code>）。两边必须一致。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>app_gsdml_modules[]</code></td><td>app_gsdml.c</td><td>6 个模块的静态定义（DAP + DI + DO + DIO + Echo + PLC Frame）</td></tr>
+    <tr><td><code>app_gsdml_submodules[]</code></td><td>app_gsdml.c</td><td>12 个子模块的静态定义</td></tr>
+    <tr><td><code>APP_GSDML_MOD_ID_PLC_FRAME</code> (0x50)</td><td>app_gsdml.h:156</td><td>PLC Frame 模块 ID</td></tr>
+    </table>
+    <h4>常见误解</h4>
+    <details><summary>⚠️ 常见误解</summary>
+    <ul style="margin-top:8px;padding-left:18px">
+      <li>改了 C 代码里的模块 ID 必须同步改 GSDML XML → 两边不一致会导致 PLC 拒绝连接（Ident Number 不匹配）</li>
+      <li>GSDML 中的 ModuleIdentNumber 和 SubmoduleIdentNumber 对应 C 代码中的 module_id 和 submodule_id</li>
+    </ul></details>
+  </div>
+</div>
+
+<!-- Log System -->
+<div class="gl-card" data-category="arch" data-name="Log System 日志系统">
+  <div class="gl-card-head">
+    <div><span class="gl-term">日志系统</span><span class="gl-term-full">APP_LOG 五级过滤</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">架构概念</span><span class="gl-importance">⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>嵌入式系统常见的编译期+运行期双重过滤日志系统。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>app_log.c</code>。5 级：DEBUG(0) < INFO(1) < WARNING(2) < ERROR(3) < FATAL(4)。默认级别 FATAL（只输出致命错误）。CLI 每加一个 <code>-v</code> 降一级：<code>-v</code>=ERROR, <code>-vv</code>=WARNING, <code>-vvv</code>=INFO, <code>-vvvv</code>=DEBUG。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>APP_LOG_DEBUG(...)</code> ~ <code>APP_LOG_FATAL(...)</code></td><td>app_log.h:43-47</td><td>5 个便捷宏</td></tr>
+    <tr><td><code>app_log_set_log_level()</code></td><td>app_log.c:23</td><td>运行时修改过滤级别</td></tr>
+    <tr><td><code>APP_DEFAULT_LOG_LEVEL</code> = FATAL</td><td>app_log.h:39</td><td>默认只输出致命错误</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- CLI Arguments -->
+<div class="gl-card" data-category="hardware" data-name="CLI Arguments 命令行参数">
+  <div class="gl-card-head">
+    <div><span class="gl-term">CLI 参数</span><span class="gl-term-full">pn_dev 命令行接口</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-todo">硬件接口</span><span class="gl-importance">⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>标准 Linux getopt 命令行参数解析。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>parse_commandline_arguments()</code>（sampleapp_main.c:136）。关键参数：<code>-i eth0</code>（网口）、<code>-s rt-labs-dev</code>（站名）、<code>-p /tmp/pnet</code>（存储路径）、<code>-v[vvv]</code>（日志级别）、<code>-f</code>（恢复出厂）、<code>-b/-d FILE</code>（按钮文件）。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>app_args_t</code></td><td>sampleapp_common.h:51-65</td><td>解析后的参数结构体</td></tr>
+    <tr><td><code>APP_DEFAULT_ETHERNET_INTERFACE</code></td><td>sampleapp_main.c:40</td><td>默认 eth0（单口）或 br0,eth0,eth1（多口）</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Button / LED -->
+<div class="gl-card" data-category="hardware" data-name="Button LED 硬件模拟">
+  <div class="gl-card-head">
+    <div><span class="gl-term">Button / LED</span><span class="gl-term-full">硬件 IO 模拟机制</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-todo">硬件接口</span><span class="gl-importance">⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>PROFINET 设备通常有物理按钮和 LED。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p>Linux 上通过文件读写模拟：<code>app_get_button(1)</code> 读取 <code>-b</code> 指定的文件（首字符='1'则按下）；<code>app_set_led(1, true)</code> 执行 <code>set_profinet_leds</code> 脚本。Button1 状态映射到 I1.7；Button2 按下触发 Demo 状态机循环。</p></div>
+    </div>
+    <h4>关联名词</h4>
+    <div class="gl-relations">
+      <div class="gl-rel-item gl-rel-child"><span class="gl-rel-label">下位</span><span class="gl-rel-link" style="color:var(--blue)">Demo 状态机</span><span class="gl-rel-desc">— Button2 每次按下推进 Demo 状态（11 个状态循环）</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Serial Debug -->
+<div class="gl-card" data-category="hardware" data-name="Serial Debug 串口调试">
+  <div class="gl-card-head">
+    <div><span class="gl-term">串口调试</span><span class="gl-term-full">/dev/ttyFIQ0 115200 8N1</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-todo">硬件接口</span><span class="gl-importance">⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>嵌入式 Linux 开发板常见的调试串口（FIQ = Fast Interrupt Request，OK3576 专用）。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>init_serial_port()</code>（app_data.c:89）打开 <code>/dev/ttyFIQ0</code>，stty 配置 115200 8N1 raw 模式。失败回退 stdout。<code>print_io_on_change()</code> 仅在 IO 数据变化时输出 <code>I1.x / Q1.x</code> 位状态。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>SERIAL_DEVICE</code> = "/dev/ttyFIQ0"</td><td>app_data.c:74</td><td>OK3576 调试串口设备路径</td></tr>
+    <tr><td><code>print_io_on_change()</code></td><td>app_data.c:188</td><td>仅变化时打印，减少串口输出量</td></tr>
+  </table>
+  </div>
+</div>
+
+<!-- Demo State Machine -->
+<div class="gl-card" data-category="state" data-name="Demo State Machine 演示状态机">
+  <div class="gl-card-head">
+    <div><span class="gl-term">Demo 状态机</span><span class="gl-term-full">Button2 驱动的 11 状态循环</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">状态机</span><span class="gl-importance">⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>无通用标准——这是 p-net 示例内置的 API 演示机制。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>app_demo_state_t</code>（11 个状态）。每次 Button2 上升沿推进一个状态：发送告警 → 写日志 → 中止 AR → 冗余数据 → 正常数据 → 标准诊断×3（增/改/删）→ USI 诊断×3（增/改/删）。循环往复。</p></div>
+    </div>
+    <h4>常见误解</h4>
+    <details><summary>⚠️ 常见误解</summary>
+    <ul style="margin-top:8px;padding-left:18px">
+      <li>Demo 状态机依赖已 plugged 的 Digital Input 子模块 → 如果 Slot 1 只配了 PLC Frame 模块，部分 Demo 操作会失败</li>
+      <li>ABORT 状态后 alarm_allowed 重新设为 true → 这是 Demo 逻辑，不影响生产代码</li>
+    </ul></details>
+  </div>
+</div>
+
+<!-- AR Lifecycle -->
+<div class="gl-card" data-category="state" data-name="AR Lifecycle AR生命周期">
+  <div class="gl-card-head">
+    <div><span class="gl-term">AR 生命周期</span><span class="gl-term-full">Application Relation 管理</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-info">状态机</span><span class="gl-importance">⭐⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>AR 从 CONNECT 建立到 RELEASE/ABORT 销毁的完整生命周期。在生命周期内可进行 IO 数据交换、告警、诊断等操作。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p><code>app_ar_t</code>（app_utils.h:117）。最多 <code>PNET_MAX_AR=16</code> 个 AR。用 <code>UINT32_MAX</code> 作为空闲槽位标记。<code>app_ar_add_arep()</code> 分配新 AR，<code>app_ar_iterator_delete_current()</code> 通过设 arep=UINT32_MAX 删除。</p></div>
+    </div>
+    <h4>代码映射</h4>
+    <table>
+    <tr><th>代码实体</th><th>文件位置</th><th>关系</th></tr>
+    <tr><td><code>app_ar_t.events</code></td><td>app_utils.h:119</td><td>每个 AR 的事件位掩码，用于 AR 级事件分发</td></tr>
+    <tr><td><code>app_ar_iterator_t</code></td><td>app_utils.h:126</td><td>支持遍历中删除的迭代器（compaction 机制）</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- PLCFrame Alignment -->
+<div class="gl-card" data-category="data" data-name="PLCFrame Packed 字节对齐">
+  <div class="gl-card-head">
+    <div><span class="gl-term">Packed Struct</span><span class="gl-term-full">#pragma pack 字节对齐</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="badge badge-todo">数据结构</span><span class="gl-importance">⭐⭐⭐</span>
+    </div>
+  </div>
+  <div class="gl-card-body">
+    <div class="gl-def-row">
+      <div class="gl-def-box gl-def-standard"><div class="gl-def-label">标准定义</div><p>C 编译器默认会对 struct 成员做内存对齐（padding），但网络协议帧必须紧凑排列。</p></div>
+      <div class="gl-def-box gl-def-project"><div class="gl-def-label">本项目中</div><p>PLCFrame 用 <code>#pragma pack(push, 1)</code> 强制 1 字节对齐。80 字节 = 32(bool) + 16(int16×8) + 32(float×8)。pn_dev 和 robot_ros2 两侧必须使用相同的 pack 和字段顺序。</p></div>
+    </div>
+    <h4>常见误解</h4>
+    <details><summary>⚠️ 常见误解</summary>
+    <ul style="margin-top:8px;padding-left:18px">
+      <li>不加 #pragma pack → sizeof(PLCFrame) 可能 > 80 → memcpy 越界或数据错位</li>
+      <li>bool_data[32] 的 bit 顺序 → PLC 侧 %QB0.0 对应 bool_data[0] 的 bit0（LSB）</li>
+    </ul></details>
+  </div>
+</div>
+
+</div><!-- end gl-list -->
+</section>
+</main>
+
+<footer>
+  PROFINET 六轴机械臂控制系统 — 架构文档 &nbsp;|&nbsp; 更新于 2026-06-17
+</footer>
+<script>
+mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose', suppressErrorRendering: true,
+  sequence: { noteMargin: 30, messageMargin: 50 } });
+renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true}],throwOnError:false});
+
+// 页面加载后只渲染首个可见 tab
+(async function(){
+  await mermaid.run({ querySelector: '#overview .mermaid' });
+  checkFallbacks('overview');
+})();
+
+// mermaid 渲染完成后检查是否需要显示 fallback
+function checkFallbacks(sectionId) {
+  var container = document.getElementById(sectionId);
+  if (!container) return;
+  var diagrams = container.querySelectorAll('.mermaid');
+  var fallbacks = container.querySelectorAll('.mermaid-fallback');
+  fallbacks.forEach(function(img, i) {
+    var mermaidDiv = diagrams[i];
+    if (!mermaidDiv || !mermaidDiv.querySelector('svg')) {
+      img.style.display = 'block';
+    }
+  });
+}
+
+function showTab(id, e) {
+  document.querySelectorAll('section').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active')});
+  if (e && e.target) e.target.classList.add('active');
+  else { var b = document.querySelector('nav button[onclick*="showTab(\''+id+'\'"]'); if (b) b.classList.add('active'); }
+  var container = document.getElementById(id);
+  if (container) {
+    var diagrams = container.querySelectorAll('.mermaid');
+    if (diagrams.length > 0) {
+      diagrams.forEach(function(d) {
+        if (!d.querySelector('svg')) { d.removeAttribute('data-processed'); }
+      });
+      mermaid.run({ querySelector: '#' + id + ' .mermaid' }).then(function() {
+        checkFallbacks(id);
+      });
+    }
+  }
+}
+
+var TL={
+  0:{title:'t=0s - Robot 启动',p:[
+    {n:'Robot',s:'ROS2 launch robot_bringup'},
+    {n:'',s:'PLCCommunicator 开始监听 :31000'},
+    {n:'',s:'加载 param.json，GPIO 安全初始化'},
+    {n:'',s:'注册 100Hz 定时器 + 1kHz joint_states 订阅'},
+    {n:'pn_dev',s:'(未启动)'},
+    {n:'PLC',s:'(未连接)'},
+    {n:'消息',s:'无'}
+  ]},
+  5:{title:'t=5s - EtherCAT 从站检查',p:[
+    {n:'Robot',s:'轮询 11 个 EtherCAT 从站 PREOP+ 状态'},
+    {n:'',s:'每 1s 检查一次，最长等待 90s'},
+    {n:'pn_dev',s:'(未启动)'},
+    {n:'PLC',s:'(未连接)'},
+    {n:'消息',s:'无'}
+  ]},
+  6:{title:'t=6s - pn_dev 启动',p:[
+    {n:'pn_dev',s:'app_data_init() - 打开 /dev/ttyFIQ0 调试串口'},
+    {n:'',s:'app_plc_bridge_start() - 创建 TCP 连接线程'},
+    {n:'消息',s:'pn_dev → Robot: TCP SYN (127.0.0.1:31000)'},
+    {n:'Robot',s:'PLCCommunicator 接受连接'},
+    {n:'消息',s:'Robot → pn_dev: TCP ACK (连接成功)'},
+    {n:'pn_dev',s:'pnet_init() - 等待 PLC DCP 发现'},
+    {n:'',s:'此时 latest_robot_status 全为零(机器人尚未就绪)'}
+  ]},
+  30:{title:'t=30s - 运动控制器就绪',p:[
+    {n:'Robot',s:'所有 11 个 EtherCAT 从站进入 OP 状态'},
+    {n:'',s:'arm_controller 激活 (启动后约 27s)'},
+    {n:'',s:'100Hz buildRobotToPLCFrame() 开始刷新状态帧'},
+    {n:'',s:'1kHz jointStateCallback() 监测轨迹完成'},
+    {n:'消息',s:'pn_dev ⇄ Robot: TCP PLCFrame 80B (有实际数据)'},
+    {n:'pn_dev',s:'1ms tick + 100ms 轮询周期正常运行'},
+    {n:'PLC',s:'(尚未连接 PROFINET)'}
+  ]},
+  35:{title:'t=35s - PLC 联机',p:[
+    {n:'PLC',s:'DCP IDENTIFY - 发现设备'},
+    {n:'消息',s:'pn_dev → PLC: 应答 "rt-labs-dev"'},
+    {n:'PLC',s:'DCP SET - 分配 IP 地址'},
+    {n:'PLC',s:'CONNECT - 建立 AR (Application Relation)'},
+    {n:'PLC',s:'PrmEnd - 参数化完成'},
+    {n:'消息',s:'pn_dev → PLC: APPLICATION READY'},
+    {n:'PLC',s:'开始 1ms 周期 IO: 写 %QB0~79, 读 %IB0~79'},
+    {n:'pn_dev',s:'app_cyclic_data_callback() 开始被调用'}
+  ]},
+  run:{title:'稳态 - 1ms PROFINET 周期',p:[
+    {n:'PLC',s:'每 1ms: 写入 %Q 区 80B Output, 读取 %I 区 80B Input'},
+    {n:'消息',s:'PLC → pn_dev: PROFINET RT 帧 (Output 80B)'},
+    {n:'pn_dev',s:'pf_cpm 收帧 - 缓冲 - app_cyclic_data_callback()'},
+    {n:'消息',s:'pn_dev → Robot: TCP send(PLCFrame 80B)'},
+    {n:'Robot',s:'handlePLCData() 处理命令 + 更新视觉偏移'},
+    {n:'消息',s:'Robot → pn_dev: TCP send(status PLCFrame 80B)'},
+    {n:'pn_dev',s:'缓存到 latest_robot_status - app_data_get_input_data()'},
+    {n:'消息',s:'pn_dev → PLC: PROFINET RT 帧 (Input 80B)'},
+    {n:'Robot',s:'100Hz buildRobotToPLCFrame() 刷新 BOOL[0~37]'},
+    {n:'Robot',s:'1kHz jointStateCallback() 检测轨迹完成 - notifyPlcActionDone()'}
+  ]}
+};
+function showTL(t){
+  document.querySelectorAll('.tl-btn,.tl-marker,.tl-ev').forEach(function(e){e.classList.remove('active')});
+  document.querySelectorAll('.tl-btn[data-tl="'+t+'"]').forEach(function(b){b.classList.add('active')});
+  document.querySelectorAll('.tl-marker[data-t="'+t+'"]').forEach(function(m){m.classList.add('active')});
+  document.querySelectorAll('.tl-ev[data-t="'+t+'"]').forEach(function(e){e.classList.add('active')});
+  var d=TL[t]; if(!d) return;
+  var h='<h4>'+d.title+'</h4>';
+  d.p.forEach(function(x){h+=x.n?('<p style="margin-top:8px"><strong style="color:var(--blue)">'+x.n+'</strong></p><ul><li>'+x.s+'</li></ul>'):('<ul><li>'+x.s+'</li></ul>')});
+  document.getElementById('tlDetail').innerHTML=h;
+}
+showTL(0);
+// 关键名词：过滤与搜索
+function filterGlossary(category, btn) {
+  document.querySelectorAll('.gl-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.gl-card').forEach(card => {
+    if (category === 'all' || card.dataset.category === category) {
+      card.classList.remove('hidden');
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+}
+function searchGlossary(query) {
+  var q = query.toLowerCase();
+  document.querySelectorAll('.gl-card').forEach(card => {
+    var text = (card.dataset.name || '') + card.innerText;
+    card.classList.toggle('hidden', q.length > 0 && !text.toLowerCase().includes(q));
+  });
+}
+</script>
+</body>
+</html>

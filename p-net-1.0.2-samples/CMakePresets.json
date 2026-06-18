@@ -1,0 +1,40 @@
+{
+    "version": 6,
+    "configurePresets": [{
+        "name": "default",
+        "hidden": true,
+        "generator": "Ninja",
+        "binaryDir": "build/${presetName}",
+        "cacheVariables": {
+            "CMAKE_EXPORT_COMPILE_COMMANDS": true
+        }
+    },{
+        "name": "debug",
+        "inherits": "default",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug"
+        }
+    },{
+        "name": "test",
+        "inherits": "default",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Coverage"
+        }
+    },{
+        "name": "release",
+        "inherits": "default",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+        }
+    }],
+    "buildPresets": [{
+        "name": "debug",
+        "configurePreset": "debug"
+    },{
+        "name": "test",
+        "configurePreset": "test"
+    },{
+        "name": "release",
+        "configurePreset": "release"
+    }]
+}

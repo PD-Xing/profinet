@@ -1,0 +1,16 @@
+# Large prebuilt toolchains & SDKs
+cmake-3.28.0-linux-x86_64/
+toolchain/
+
+# Build artifacts
+p-net-1.0.2-samples/build/
+p-net-1.0.2-samples/build-aarch64/
+
+# Archives
+*.tar.gz
+*.zip
+*.7z
+
+# OS-generated
+.DS_Store
+Thumbs.db

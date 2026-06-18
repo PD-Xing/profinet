@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//tmp/**)",
+      "Bash(unzip -l /home/jiaoso/profinet/p-net-1.0.2-samples.zip)",
+      "Bash(npx -y artscii diagram --type flowchart --title \"PROFINET Robot Control System Architecture\" --nodes \"PLC\\(TIA Portal\\),pn_dev\\(PROFINET Device\\),Robot Controller\\(ROS2+MoveIt2\\),6-Axis Robot Arm\" --edges \"PLC->pn_dev:PROFINET RT 1ms,pn_dev->Robot Controller:TCP localhost:31000 PLCFrame 80B,Robot Controller->6-Axis Robot Arm:EtherCAT CIA402\")",
+      "Bash(python3 *)"
+    ]
+  }
+}

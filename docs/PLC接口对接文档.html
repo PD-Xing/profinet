@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLC 侧数据格式说明 — 结构图</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #1a1a2e; --panel: #16213e; --accent: #0f3460; --hl: #e94560;
+  --text: #eee; --muted: #a0a0b0; --border: #2a2a4a; --green: #00c853;
+  --orange: #ff9100; --blue: #448aff; --purple: #bb86fc;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+header { background: linear-gradient(135deg, #16213e, #0f3460); padding: 48px 24px; text-align: center; border-bottom: 3px solid var(--hl); }
+header h1 { font-size: 2em; margin-bottom: 8px; }
+header p { color: var(--muted); font-size: 1.1em; }
+nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 16px 24px; background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+nav button { padding: 10px 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; font-size: 0.95em; transition: all 0.2s; }
+nav button:hover, nav button.active { background: var(--accent); color: #fff; border-color: var(--hl); }
+main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+section { display: none; animation: fade 0.3s; }
+section.active { display: block; }
+@keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.diagram-container { background: #fff; border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center; overflow-x: auto; }
+.diagram-container img { max-width: 100%; height: auto; }
+h2 { font-size: 1.5em; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+h3 { font-size: 1.15em; margin: 24px 0 12px; color: var(--blue); }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.95em; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+th { background: var(--accent); color: #fff; font-weight: 600; }
+tr:hover { background: rgba(255,255,255,0.04); }
+.code-block { background: #0d1117; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 12px 0; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85em; line-height: 1.5; }
+.code-block .kw { color: #ff7b72; } .code-block .fn { color: #d2a8ff; } .code-block .cm { color: #8b949e; } .code-block .str { color: #a5d6ff; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
+.badge-out { background: #448aff33; color: var(--blue); }
+.badge-in  { background: #00c85333; color: var(--green); }
+.badge-edge { background: #ff910033; color: var(--orange); }
+.badge-reserved { background: #a0a0b033; color: var(--muted); }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin: 20px 0; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+.card h4 { margin-bottom: 8px; color: var(--blue); }
+.note { background: rgba(255,145,0,0.1); border-left: 3px solid var(--orange); padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+footer { text-align: center; padding: 32px; color: var(--muted); font-size: 0.85em; border-top: 1px solid var(--border); margin-top: 48px; }
+.mermaid-fallback { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PLC 侧数据格式说明</h1>
+  <p>80 字节 PLCFrame 结构图 · 信号映射 · 操作时序</p>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('memory')">内存布局</button>
+  <button onclick="showTab('plc2robot')">PLC → Robot</button>
+  <button onclick="showTab('robot2plc')">Robot → PLC</button>
+  <button onclick="showTab('sequence')">操作时序</button>
+  <button onclick="showTab('reference')">快速参考</button>
+</nav>
+
+<main>
+
+<!-- ==================== TAB 1: 内存布局 ==================== -->
+<section id="memory" class="active">
+<h2>80 字节 PLCFrame 内存布局</h2>
+
+<div class="diagram-container">
+  <div class="mermaid">
+flowchart TB
+    subgraph PLCFrame["PLCFrame 80 字节"]
+        direction LR
+        subgraph B32["bool_data[32] — 偏移 0~31"]
+            B0["BOOL[0~7] @ +0"]
+            B1["BOOL[8~15] @ +1"]
+            Bdots["..."]
+            B31["BOOL[248~255] @ +31"]
+        end
+        subgraph I16["int_data[8] — 偏移 32~47"]
+            I0["INT[0] @ +32"]
+            I1["INT[1] @ +34"]
+            Idots["..."]
+            I7["INT[7] @ +46"]
+        end
+        subgraph R32["real_data[8] — 偏移 48~79"]
+            R0["REAL[0] @ +48"]
+            R1["REAL[1] @ +52"]
+            Rdots["..."]
+            R7["REAL[7] @ +76"]
+        end
+    end
+    style B32 fill:#448aff33,stroke:#448aff
+    style I16 fill:#00c85333,stroke:#00c853
+    style R32 fill:#ff910033,stroke:#ff9100
+  </div>
+  <img class="mermaid-fallback" src="mermaid/04_PLCFrame协议.png" alt="PLCFrame 结构图"
+       onload="this.style.display='inline'; this.previousElementSibling.style.display='none'"
+       onerror="this.style.display='none'">
+</div>
+
+<h3>字节级布局</h3>
+<div class="diagram-container">
+  <div class="mermaid">
+flowchart LR
+    subgraph bool_area["bool_data[32] - 偏移 0~31"]
+        direction LR
+        b0["0: BOOL 0~7"] --> b1["1: BOOL 8~15"] --> bdots["..."] --> b31["31: BOOL 248~255"]
+    end
+    subgraph int_area["int_data[8] - 偏移 32~47"]
+        direction LR
+        i0["32: INT[0]"] --> i1["34: INT[1]"] --> idots["..."] --> i7["46: INT[7]"]
+    end
+    subgraph real_area["real_data[8] - 偏移 48~79"]
+        direction LR
+        r0["48: REAL[0]"] --> r1["52: REAL[1]"] --> rdots["..."] --> r7["76: REAL[7]"]
+    end
+    bool_area --> int_area --> real_area
+    style bool_area fill:#448aff33,stroke:#448aff
+    style int_area fill:#00c85333,stroke:#00c853
+    style real_area fill:#ff910033,stroke:#ff9100
+  </div>
+</div>
+
+<h3>PLC 地址映射表</h3>
+<table>
+<tr><th>区域</th><th>偏移</th><th>大小</th><th>PLC 输出地址</th><th>PLC 输入地址</th><th>C 类型</th></tr>
+<tr><td>BOOL[0~255]</td><td>0 ~ 31</td><td>32 字节</td><td>%QB0 ~ %QB31</td><td>%IB0 ~ %IB31</td><td>uint8_t[32]</td></tr>
+<tr><td>INT[0~7]</td><td>32 ~ 47</td><td>16 字节</td><td>%QW32 ~ %QW46</td><td>%IW32 ~ %IW46</td><td>int16_t[8]</td></tr>
+<tr><td>REAL[0~7]</td><td>48 ~ 79</td><td>32 字节</td><td>%QD48 ~ %QD76</td><td>%ID48 ~ %ID76</td><td>float[8]</td></tr>
+</table>
+
+<div class="note">
+<strong>注意：</strong>PROFINET 周期数据是 Big-Endian 字节序传输。pn_dev 和 robot_ros2 在本地使用 Native-Endian（ARM LE），TCP 透传不改变字节序。
+PLC 侧按 Big-Endian 写入，robot_ros2 侧需确保解析时一致。
+</div>
+</section>
+
+<!-- ==================== TAB 2: PLC → Robot ==================== -->
+<section id="plc2robot">
+<h2>PLC → 设备（输出方向）</h2>
+
+<div class="diagram-container">
+  <div class="mermaid">
+flowchart TB
+    subgraph PLC["PLC 侧 (TIA Portal)"]
+        Q00["%QB0.0 = BOOL[0]<br/>上电启动"]
+        Q04["%QB0.4 = BOOL[4]<br/>软急停"]
+        Q0N["%QB0~31 = BOOL[0~255]<br/>程序变量"]
+        QW["%QW32~46 = INT[0~7]<br/>程序变量"]
+        QD48["%QD48~60 = REAL[0~3]<br/>视觉偏移 X/Y/Z/R"]
+        QD64["%QD64~76 = REAL[4~7]<br/>程序变量"]
+    end
+
+    subgraph PROFINET["PROFINET RT 1ms"]
+        frame["80 字节 Output 帧"]
+    end
+
+    subgraph pn_dev["pn_dev (透传)"]
+        tcp["TCP send → :31000"]
+    end
+
+    subgraph Robot["robot_ros2"]
+        handler["handlePLCData()"]
+        var["程序变量区<br/>DATA_BOOL/INT/REAL"]
+    end
+
+    Q00 --> frame
+    Q04 --> frame
+    Q0N --> frame
+    QW --> frame
+    QD48 --> frame
+    QD64 --> frame
+    frame --> tcp
+    tcp --> handler
+    handler --> var
+
+    handler -->|"上升沿"| start["gpio_safety_start()"]
+    handler -->|"上升沿"| stop["triggerStop()"]
+    handler -->|"连续"| vision["plc_vision_offset_[4]"]
+
+    style Q00 fill:#ff910033,stroke:#ff9100
+    style Q04 fill:#ff910033,stroke:#ff9100
+    style QD48 fill:#448aff33,stroke:#448aff
+    style start fill:#e9456033,stroke:#e94560
+    style stop fill:#e9456033,stroke:#e94560
+  </div>
+</div>
+
+<h3>硬件控制信号（边缘触发）</h3>
+<table>
+<tr><th>地址</th><th>信号</th><th>触发</th><th>功能</th><th>代码路径</th></tr>
+<tr><td><code>%QB0.0</code></td><td>BOOL[0]</td><td><span class="badge badge-edge">↑ 上升沿</span></td><td>上电启动</td><td><code>handlePLCData()</code> → <code>gpio_safety_start()</code></td></tr>
+<tr><td><code>%QB0.4</code></td><td>BOOL[4]</td><td><span class="badge badge-edge">↑ 上升沿</span></td><td>软急停</td><td><code>handlePLCData()</code> → <code>triggerStop()</code></td></tr>
+</table>
+
+<h3>视觉偏移（连续值，实时生效）</h3>
+<table>
+<tr><th>地址</th><th>信号</th><th>存储位置</th><th>说明</th></tr>
+<tr><td><code>%QD48</code></td><td>REAL[0]</td><td><code>plc_vision_offset_[0]</code></td><td>X 方向偏移 (m)</td></tr>
+<tr><td><code>%QD52</code></td><td>REAL[1]</td><td><code>plc_vision_offset_[1]</code></td><td>Y 方向偏移 (m)</td></tr>
+<tr><td><code>%QD56</code></td><td>REAL[2]</td><td><code>plc_vision_offset_[2]</code></td><td>Z 方向偏移 (m)</td></tr>
+<tr><td><code>%QD60</code></td><td>REAL[3]</td><td><code>plc_vision_offset_[3]</code></td><td>姿态偏移 (rad)</td></tr>
+</table>
+
+<h3>程序变量区</h3>
+<table>
+<tr><th>地址</th><th>变量名</th><th>数量</th><th>用途</th></tr>
+<tr><td><code>%QB0 ~ %QB31</code></td><td>DATA_BOOL[0~255]</td><td>256 个 bool</td><td>供 .proc 程序引用</td></tr>
+<tr><td><code>%QW32 ~ %QW46</code></td><td>DATA_INT[0~7]</td><td>8 个 int16</td><td>供 .proc 程序引用</td></tr>
+<tr><td><code>%QD48 ~ %QD76</code></td><td>DATA_REAL[0~7]</td><td>8 个 float32</td><td>REAL[0~3] 双重用途（视觉+程序变量）</td></tr>
+</table>
+</section>
+
+<!-- ==================== TAB 3: Robot → PLC ==================== -->
+<section id="robot2plc">
+<h2>设备 → PLC（输入方向）</h2>
+
+<div class="diagram-container">
+  <div class="mermaid">
+flowchart TB
+    subgraph Robot["robot_ros2 数据源"]
+        gpio["gpio_safety_get_state()"]
+        ena["EnableStatus"]
+        traj["trajectory_cache_.is_active"]
+        vel["sum|qd| > 0.005"]
+        tool_ai["tool_realtime_.ai0/ai1"]
+        tool_di["tool_realtime_.di bits"]
+        board_di["board DI bits"]
+    end
+
+    subgraph build["buildRobotToPLCFrame()"]
+        frame["PLCFrame 组装"]
+    end
+
+    subgraph TCP["TCP → pn_dev"]
+        status["latest_robot_status 缓存"]
+    end
+
+    subgraph PROFINET["PROFINET RT 1ms"]
+        input["80 字节 Input 帧"]
+    end
+
+    subgraph PLC["PLC 侧"]
+        I00["%IB0.0 = 电源"]
+        I01["%IB0.1 = 告警"]
+        I02["%IB0.2 = 使能"]
+        I06["%IB0.6 = Busy"]
+        I07["%IB0.7 = Moving"]
+        I15["%IB1.7 = Action Busy"]
+        I16["%IB2.0 = Action Done"]
+        I17["%IB2.1/2 = 夹爪"]
+        I32["%IB4.0/1 = 有料"]
+        I34["%IB4.2~5 = DI"]
+    end
+
+    gpio --> frame
+    ena --> frame
+    traj --> frame
+    vel --> frame
+    tool_ai --> frame
+    tool_di --> frame
+    board_di --> frame
+    frame --> status
+    status --> input
+    input --> I00
+    input --> I01
+    input --> I02
+    input --> I06
+    input --> I07
+    input --> I15
+    input --> I16
+    input --> I17
+    input --> I32
+    input --> I34
+
+    style frame fill:#00c85333,stroke:#00c853
+    style status fill:#448aff33,stroke:#448aff
+    style I16 fill:#ff910033,stroke:#ff9100
+  </div>
+</div>
+
+<h3>状态信号</h3>
+<table>
+<tr><th>地址</th><th>信号</th><th>数据来源</th><th>说明</th></tr>
+<tr><td><code>%IB0.0</code></td><td>BOOL[0]</td><td><code>gpio_safety_get_state() == RUNNING</code></td><td>电源已上电</td></tr>
+<tr><td><code>%IB0.1</code></td><td>BOOL[1]</td><td><code>EnableStatus == 0</code></td><td>告警（电机未使能）</td></tr>
+<tr><td><code>%IB0.2</code></td><td>BOOL[2]</td><td><code>EnableStatus != 0</code></td><td>已使能</td></tr>
+<tr><td><code>%IB0.6</code></td><td>BOOL[6]</td><td><code>trajectory_cache_.is_active</code></td><td>轨迹执行中 (Busy)</td></tr>
+<tr><td><code>%IB0.7</code></td><td>BOOL[7]</td><td><code>Σ|q̇| > 0.005</code></td><td>关节运动中 (Moving)</td></tr>
+<tr><td><code>%IB1.7</code></td><td>BOOL[15]</td><td><code>Σ|q̇| > 0.005</code></td><td>动作忙 (同 Moving)</td></tr>
+<tr><td><code>%IB2.0</code></td><td>BOOL[16]</td><td><code>done_expire</code> 保持 300ms</td><td><span class="badge badge-edge">动作完成</span> (需锁存)</td></tr>
+</table>
+
+<h3>夹爪状态</h3>
+<table>
+<tr><th>地址</th><th>信号</th><th>数据来源</th><th>说明</th></tr>
+<tr><td><code>%IB2.1</code></td><td>BOOL[17]</td><td><code>tool_realtime_.ai0 > 128</code></td><td>左夹爪闭合</td></tr>
+<tr><td><code>%IB2.2</code></td><td>BOOL[18]</td><td><code>tool_realtime_.ai1 > 128</code></td><td>右夹爪闭合</td></tr>
+<tr><td><code>%IB4.0</code></td><td>BOOL[32]</td><td><code>tool_realtime_.di bit0</code></td><td>左夹爪有料</td></tr>
+<tr><td><code>%IB4.1</code></td><td>BOOL[33]</td><td><code>tool_realtime_.di bit1</code></td><td>右夹爪有料</td></tr>
+</table>
+
+<h3>板载传感器</h3>
+<table>
+<tr><th>地址</th><th>信号</th><th>说明</th></tr>
+<tr><td><code>%IB4.2</code></td><td>BOOL[34]</td><td>板级 DI bit0</td></tr>
+<tr><td><code>%IB4.3</code></td><td>BOOL[35]</td><td>板级 DI bit1</td></tr>
+<tr><td><code>%IB4.4</code></td><td>BOOL[36]</td><td>板级 DI bit2</td></tr>
+<tr><td><code>%IB4.5</code></td><td>BOOL[37]</td><td>板级 DI bit3</td></tr>
+</table>
+
+<div class="note">
+<strong>预留区域：</strong>INT[0~7] (%IW32~46) 和 REAL[0~7] (%ID48~76) 在输入方向当前全为零，预留给后续扩展（如关节角度、TCP位姿等机器人实时状态反馈）。
+</div>
+</section>
+
+<!-- ==================== TAB 4: 操作时序 ==================== -->
+<section id="sequence">
+<h2>典型操作时序</h2>
+
+<h3>上电流程</h3>
+<div class="diagram-container">
+  <div class="mermaid">
+sequenceDiagram
+    participant PLC
+    participant pn_dev
+    participant Robot
+
+    Note over PLC,Robot: 初始状态: BOOL[0]=0, BOOL[2]=0
+
+    PLC->>pn_dev: PROFINET: BOOL[0] = 1 (上升沿)
+    pn_dev->>Robot: TCP: PLCFrame (BOOL[0]=1)
+    Robot->>Robot: handlePLCData() 检测上升沿
+    Robot->>Robot: gpio_safety_start()
+    Robot->>pn_dev: TCP: status (BOOL[0]=1, BOOL[2]=1)
+    pn_dev->>PLC: PROFINET: 电源=1, 使能=1
+
+    Note over PLC: PLC 确认: BOOL[0]=1 AND BOOL[2]=1 表示就绪
+
+    PLC->>pn_dev: PROFINET: BOOL[0] = 0 (复位)
+    pn_dev->>Robot: TCP: PLCFrame (BOOL[0]=0)
+  </div>
+</div>
+
+<h3>急停流程</h3>
+<div class="diagram-container">
+  <div class="mermaid">
+sequenceDiagram
+    participant PLC
+    participant pn_dev
+    participant Robot
+
+    Note over PLC,Robot: 初始状态: 正常运行，BOOL[6]=1 (Busy)
+
+    PLC->>pn_dev: PROFINET: BOOL[4] = 1 (上升沿)
+    pn_dev->>Robot: TCP: PLCFrame (BOOL[4]=1)
+    Robot->>Robot: handlePLCData() 检测上升沿
+    Robot->>Robot: triggerStop()
+    Robot->>pn_dev: TCP: status (BOOL[6]=0, BOOL[1]=1)
+    pn_dev->>PLC: PROFINET: Busy=0, 告警=1
+
+    Note over PLC: PLC 确认: BOOL[6]=0 AND BOOL[1]=1 表示已停止
+
+    PLC->>pn_dev: PROFINET: BOOL[4] = 0 (复位)
+  </div>
+</div>
+
+<h3>与 .proc 程序协作</h3>
+<div class="diagram-container">
+  <div class="mermaid">
+sequenceDiagram
+    participant PLC
+    participant pn_dev
+    participant Robot
+    participant Proc as .proc 程序
+
+    Note over PLC,Proc: PLC 通过程序变量区传递命令参数
+
+    PLC->>pn_dev: REAL[0~5] = 目标数据
+    PLC->>pn_dev: INT[0] = 命令码
+    PLC->>pn_dev: BOOL[8] = 1 (触发位 ↑)
+
+    pn_dev->>Robot: TCP 透传
+    Robot->>Proc: 同步程序变量
+    Proc->>Proc: 解析命令码 + 参数
+    Proc->>Proc: 执行运动指令
+
+    Robot->>pn_dev: BOOL[6]=1 (Busy)
+    pn_dev->>PLC: Busy=1
+
+    Proc->>Proc: 运动完成
+    Robot->>pn_dev: BOOL[6]=0, BOOL[16]=1 (Done, 保持300ms)
+    pn_dev->>PLC: Done=1
+
+    Note over PLC: PLC 检测 BOOL[16] 上升沿 → 锁存完成信号
+
+    PLC->>pn_dev: BOOL[8] = 0 (触发位复位)
+  </div>
+</div>
+
+<div class="note">
+<strong>PLC 编程提示：</strong><br>
+1. BOOL[16] 仅保持 300ms，PLC 必须检测上升沿后立即锁存<br>
+2. 触发位 (如 BOOL[8]) 需要在检测到 Done 后复位，为下次触发做准备<br>
+3. 命令码和参数的含义由 .proc 程序定义，PLCFrame 本身不包含运动语义
+</div>
+</section>
+
+<!-- ==================== TAB 5: 快速参考 ==================== -->
+<section id="reference">
+<h2>快速参考卡</h2>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>PROFINET 传输参数</h4>
+    <table style="margin-top:8px">
+      <tr><td>设备名称</td><td><code>rt-labs-dev</code></td></tr>
+      <tr><td>输出 (PLC→设备)</td><td>80 字节，1ms 周期</td></tr>
+      <tr><td>输入 (设备→PLC)</td><td>80 字节，1ms 周期</td></tr>
+      <tr><td>GSDML 模块</td><td>PLC Frame (Ident 0x00000050)</td></tr>
+      <tr><td>VendorID</td><td>0x0493 (RT-Labs)</td></tr>
+      <tr><td>DeviceID</td><td>0x0002</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h4>信号速查 — 输出方向</h4>
+    <table style="margin-top:8px">
+      <tr><td><code>%QB0.0</code></td><td>BOOL[0] ↑</td><td>上电</td></tr>
+      <tr><td><code>%QB0.4</code></td><td>BOOL[4] ↑</td><td>急停</td></tr>
+      <tr><td><code>%QD48</code></td><td>REAL[0]</td><td>视觉X</td></tr>
+      <tr><td><code>%QD52</code></td><td>REAL[1]</td><td>视觉Y</td></tr>
+      <tr><td><code>%QD56</code></td><td>REAL[2]</td><td>视觉Z</td></tr>
+      <tr><td><code>%QD60</code></td><td>REAL[3]</td><td>视觉R</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h4>信号速查 — 输入方向</h4>
+    <table style="margin-top:8px">
+      <tr><td><code>%IB0.0</code></td><td>BOOL[0]</td><td>电源</td></tr>
+      <tr><td><code>%IB0.1</code></td><td>BOOL[1]</td><td>告警</td></tr>
+      <tr><td><code>%IB0.2</code></td><td>BOOL[2]</td><td>使能</td></tr>
+      <tr><td><code>%IB0.6</code></td><td>BOOL[6]</td><td>Busy</td></tr>
+      <tr><td><code>%IB0.7</code></td><td>BOOL[7]</td><td>Moving</td></tr>
+      <tr><td><code>%IB2.0</code></td><td>BOOL[16]</td><td>Done ↑</td></tr>
+    </table>
+  </div>
+</div>
+
+<h3>PLC 程序参考（SCL 风格）</h3>
+<div class="code-block">
+<span class="cm">// === 输出（PLC → 设备）===</span>
+
+<span class="str">"DB_Frame"</span>.Output.bool_data[0].%X0 := <span class="str">"上电按钮"</span>;     <span class="cm">// BOOL[0]</span>
+<span class="str">"DB_Frame"</span>.Output.bool_data[0].%X4 := <span class="str">"急停按钮"</span>;     <span class="cm">// BOOL[4]</span>
+<span class="str">"DB_Frame"</span>.Output.real_data[0]  := <span class="str">"视觉偏移X"</span>;    <span class="cm">// REAL[0]</span>
+<span class="str">"DB_Frame"</span>.Output.real_data[1]  := <span class="str">"视觉偏移Y"</span>;    <span class="cm">// REAL[1]</span>
+<span class="str">"DB_Frame"</span>.Output.real_data[2]  := <span class="str">"视觉偏移Z"</span>;    <span class="cm">// REAL[2]</span>
+
+<span class="cm">// === 输入（设备 → PLC）===</span>
+
+<span class="str">"设备已上电"</span>  := <span class="str">"DB_Frame"</span>.Input.bool_data[0].%X0;   <span class="cm">// BOOL[0]</span>
+<span class="str">"设备告警"</span>    := <span class="str">"DB_Frame"</span>.Input.bool_data[0].%X1;   <span class="cm">// BOOL[1]</span>
+<span class="str">"设备已使能"</span>  := <span class="str">"DB_Frame"</span>.Input.bool_data[0].%X2;   <span class="cm">// BOOL[2]</span>
+<span class="str">"轨迹执行中"</span>  := <span class="str">"DB_Frame"</span>.Input.bool_data[0].%X6;   <span class="cm">// BOOL[6]</span>
+
+<span class="cm">// === Action Done 上升沿锁存 ===</span>
+<span class="kw">IF</span> <span class="str">"DB_Frame"</span>.Input.bool_data[2].%X0 <span class="kw">AND NOT</span> <span class="str">"Done_Memory"</span> <span class="kw">THEN</span>
+    <span class="str">"动作完成_锁存"</span> := TRUE;
+<span class="kw">END_IF</span>;
+<span class="str">"Done_Memory"</span> := <span class="str">"DB_Frame"</span>.Input.bool_data[2].%X0;
+</div>
+
+<h3>注意事项</h3>
+<table>
+<tr><th>#</th><th>事项</th></tr>
+<tr><td>1</td><td><strong>BOOL[0] 和 BOOL[4] 是上升沿触发</strong>，操作后必须复位为 0，否则无法再次触发</td></tr>
+<tr><td>2</td><td><strong>BOOL[16] 仅保持 300ms</strong>，PLC 应检测上升沿后立即锁存</td></tr>
+<tr><td>3</td><td><strong>REAL 是 IEEE 754 单精度浮点</strong>，注意字节序（Big-Endian 传输）</td></tr>
+<tr><td>4</td><td><strong>运动指令的具体含义由 .proc 程序定义</strong>，PLCFrame 本身不直接包含运动语义</td></tr>
+<tr><td>5</td><td>未使用的区域保持为 0</td></tr>
+<tr><td>6</td><td>GSDML 文件名：<code>GSDML-V2.43-RT-Labs-P-Net-Sample-App-20240530.xml</code></td></tr>
+</table>
+</section>
+
+</main>
+
+<footer>
+  PLC 侧数据格式说明 — 结构图 &nbsp;|&nbsp; 更新于 2026-06-17 &nbsp;|&nbsp;
+  <a href="系统架构文档.html" style="color:var(--blue)">← 返回架构总览</a>
+</footer>
+
+<script>
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'neutral',
+  securityLevel: 'loose',
+  suppressErrorRendering: true,
+  sequence: { noteMargin: 30, messageMargin: 50 }
+});
+
+// 页面加载后渲染首个可见 tab
+(async function(){
+  await mermaid.run({ querySelector: '#memory .mermaid' });
+})();
+
+function showTab(id) {
+  document.querySelectorAll('section').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(function(b){ b.classList.remove('active'); });
+  // Find the clicked button
+  var btn = document.querySelector('nav button[onclick="showTab(\''+id+'\')"]');
+  if (btn) btn.classList.add('active');
+  // 重置并重新渲染当前 tab 的 mermaid 图
+  var mermaidDivs = document.getElementById(id).querySelectorAll('.mermaid');
+  if (mermaidDivs.length > 0) {
+    mermaidDivs.forEach(function(d) {
+      if (!d.querySelector('svg')) { d.removeAttribute('data-processed'); }
+    });
+    mermaid.run({ querySelector: '#' + id + ' .mermaid' });
+  }
+}
+</script>
+</body>
+</html>
